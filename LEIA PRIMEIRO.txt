@@ -1,0 +1,16 @@
+SISLAM - PRIMEIRA VERSAO LOCAL DEMONSTRATIVA
+
+1. Abra INICIAR SISLAM.cmd e aguarde a abertura do navegador.
+2. Acesse http://localhost:3400.
+3. A senha dos perfis ficticios esta em ACESSO-LOCAL.txt, criado na primeira inicializacao.
+4. Para a administracao, escolha o perfil Administracao municipal no login.
+5. Deixe a janela de execucao aberta. Para encerrar, pressione Ctrl+C nessa janela.
+
+Os dados sao ficticios. Os enquadramentos, prazos informados e licencas-modelo
+demonstram o fluxo e nao produzem atos oficiais ou validade juridica.
+
+Nao apague .env: a chave local e necessaria para anexos, MFA e backups.
+Feche o sistema antes de abrir FAZER BACKUP.cmd.
+
+O README.md contem o roteiro de demonstracao com os perfis separados.
+A planilha e os PDFs normativos serao incorporados depois de enviados e validados.

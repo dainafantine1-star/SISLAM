@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.env
+.env.local
+runtime/
+*.log
+*.tsbuildinfo
+ACESSO-LOCAL.txt
+test-results/
+
+.env.*
+!.env.example
+runtime-tests/

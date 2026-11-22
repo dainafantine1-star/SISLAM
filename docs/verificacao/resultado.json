@@ -1,0 +1,133 @@
+{
+  "verifiedAt": "2026-11-22T23:16:48.639Z",
+  "edition": "demonstração local",
+  "installation": "C:\\Users\\daina\\Documents\\Novo Sistema\\SISLAM",
+  "typescript": true,
+  "build": {
+    "passed": true,
+    "id": "tkLgdDuOQBGV99qEiMVj9"
+  },
+  "tests": {
+    "passed": 20,
+    "failed": 0,
+    "cases": [
+      {
+        "title": "exige autenticação e origem segura e impede que outro perfil emita parecer",
+        "status": "passed"
+      },
+      {
+        "title": "aplica RLS mesmo quando a consulta esquece o filtro de município e rejeita FK cruzada",
+        "status": "passed"
+      },
+      {
+        "title": "não concede acesso irrestrito ao fornecedor nem expõe denúncias ao administrador",
+        "status": "passed"
+      },
+      {
+        "title": "apresenta 2 de 3 anexos e bloqueia parecer favorável e decisão com pendência",
+        "status": "passed"
+      },
+      {
+        "title": "separa recebimento administrativo da revisão técnica",
+        "status": "passed"
+      },
+      {
+        "title": "preserva original e SHA-256 em reenvio e rejeita conteúdo disfarçado",
+        "status": "passed"
+      },
+      {
+        "title": "congela a versão da regra no protocolo e não inventa saída em conflito ou falta de regra",
+        "status": "passed"
+      },
+      {
+        "title": "não conta prazo antes de ciência e a expedição demonstrativa não envia e-mail",
+        "status": "passed"
+      },
+      {
+        "title": "completa documentação, parecer, decisão separada, PDF verificável e condicionante",
+        "status": "passed"
+      },
+      {
+        "title": "mantém a denúncia em apuração após requerimento, até conclusão expressa",
+        "status": "passed"
+      },
+      {
+        "title": "verifica a cadeia de auditoria e impede alterações dos eventos",
+        "status": "passed"
+      },
+      {
+        "title": "calcula dias úteis com calendário explícito e códigos TOTP sem aprovação automática",
+        "status": "passed"
+      },
+      {
+        "title": "conclui indeferimento fundamentado sem gerar licença e preserva a proposta original",
+        "status": "passed"
+      },
+      {
+        "title": "limita o suporte a leitura autorizada, registra consultas e revoga imediatamente",
+        "status": "passed"
+      },
+      {
+        "title": "exige MFA no modo operacional e recusa reutilização de código TOTP",
+        "status": "passed"
+      },
+      {
+        "title": "impede que um segundo requerente enumere ou abra os processos e documentos de outro",
+        "status": "passed"
+      },
+      {
+        "title": "cifra a identidade do denunciante e não a entrega ao fiscal nem ao administrador",
+        "status": "passed"
+      },
+      {
+        "title": "preserva a integridade ao protocolar novo requerimento e serializar valores opcionais",
+        "status": "passed"
+      },
+      {
+        "title": "confere o digest legado sem alterar eventos e rejeita qualquer conteúdo divergente",
+        "status": "passed"
+      },
+      {
+        "title": "restaura backup criptografado com todas as tabelas, versões e anexos e rejeita adulteração",
+        "status": "passed"
+      }
+    ]
+  },
+  "browser": {
+    "passed": true,
+    "checks": [
+      "administrator_login_and_dashboard",
+      "mobile_dashboard_drawer_no_horizontal_overflow",
+      "all_administrator_categories_render",
+      "new_application_protocol_and_two_of_three_documents",
+      "protocol_receipt_technical_review_opinion_and_submission",
+      "separate_authority_license_model_pdf_and_public_verification",
+      "condition_evidence_submitted_and_reviewed",
+      "audit_chain_and_no_browser_page_errors"
+    ],
+    "pageErrors": [],
+    "screenshots": [
+      "test-results/painel-desktop.png",
+      "test-results/painel-celular.png",
+      "test-results/processo-licenca-modelo.png"
+    ]
+  },
+  "backup": {
+    "encrypted": true,
+    "restoreVerified": true,
+    "tables": 23,
+    "files": 10
+  },
+  "data": "exclusivamente fictícios",
+  "officialValidity": false,
+  "pending": [
+    "Planilha Excel e PDFs normativos originais",
+    "Homologação técnica e jurídica das regras e dos ritos",
+    "Assinatura, publicação e comunicação oficiais",
+    "Antimalware operacional e homologação S3",
+    "OCR, IA/RAG e importação normativa",
+    "Sanções, defesa e recursos completos",
+    "Provisionamento e faturamento SaaS",
+    "Auditoria independente e infraestrutura operacional"
+  ]
+}

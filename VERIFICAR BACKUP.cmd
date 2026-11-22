@@ -1,0 +1,4 @@
+@echo off
+cd /d "%~dp0"
+node node_modules/tsx/dist/cli.mjs scripts/verify-backup.ts
+pause

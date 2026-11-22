@@ -1,0 +1,381 @@
+SISLAM
+
+Sistema Inteligente de Licenciamento e Gestão Ambiental
+
+Escopo técnico e funcional • Arquitetura de referência • Plano de implantação | Versão 1.0 | 19/11/2026
+
+Município piloto: Itaberaba / BA  |  Produto-alvo: SaaS multi-município
+
+STATUS: Documento preliminar de engenharia. Regras, prazos e minutas dependem de validação do órgão, dos termos de referência, dos atos normativos vigentes e de teste com dados fictícios.
+
+1. Resumo executivo
+
+Construir plataforma de processos administrativos ambientais ponta a ponta, com protocolo digital, enquadramento preliminar, exigências documentais, análises técnicas, pareceres, emissão de licenças, condicionantes, fiscalização, denúncias, notificações e arquivo eletrônico. O sistema é apoio à decisão; atos que exigem competência formal permanecerão submetidos a agente público autorizado.
+
+2. Objetivos e indicadores
+
+Reduzir retrabalho, erros de documentação e tempo de tramitação, sem prometer prazo legal de conclusão.
+
+Manter trilha cronológica verificável por empreendimento, processo, versão documental e ato.
+
+Garantir segregação de dados entre municípios, perfis de acesso e reprodutibilidade de decisões automatizadas.
+
+Indicadores piloto: tempo por fase; percentual de dossiês completos na primeira entrega; vencimentos; retrabalho; processos sem movimentação; taxa de notificações entregues.
+
+3. Personas e permissões
+
+Perfil
+
+Pode fazer
+
+Restrições críticas
+
+Requerente
+
+Cadastrar, protocolar, anexar, acompanhar e responder exigências
+
+Somente seus empreendimentos e processos autorizados
+
+Protocolo
+
+Conferir arquivos, formalizar recebimento, distribuir
+
+Não emite decisão técnica
+
+Técnico ambiental
+
+Analisar, solicitar complementos, vistoriar, emitir parecer
+
+Não altera documentos recebidos nem homologa atos sem competência
+
+Coordenação/autoridade
+
+Homologar, assinar, publicar, atribuir tarefas
+
+Segregação de funções e assinatura individual
+
+Fiscalização
+
+Inspeções, evidências, autos e notificações
+
+Sanções só nos ritos e competências aplicáveis
+
+Ouvidoria
+
+Receber denúncias e triá-las
+
+Identidade do denunciante protegida conforme classificação
+
+Admin município
+
+Configurar equipes, modelos e permissões delegadas
+
+Não acessa dados de outro município
+
+Admin fornecedor
+
+Suporte com acesso excepcional, autorizado e auditado
+
+Sem capacidade irrestrita de alterar decisões administrativas
+
+4. Fluxos de negócio de ponta a ponta
+
+4.1 Requerimento e enquadramento
+
+Identificar pessoa jurídica, estabelecimento, responsável legal/técnico, endereço e coordenadas; separar porte fiscal de porte ambiental.
+
+Capturar atividade/CNAE, descrição, capacidade instalada, área, localização, intervenções e demais parâmetros da regra aplicável.
+
+Verificar competência municipal e possíveis impedimentos, conflitos e necessidade de análise estadual/federal.
+
+Produzir enquadramento PRELIMINAR fundamentado: atividade, classe/porte, potencial poluidor, modalidade possível, exigências, base normativa e versão das regras.
+
+Permitir revisão técnica, justificativa e correção do enquadramento sem apagar proposta anterior.
+
+4.2 Exigências e protocolo
+
+Gerar checklist documental específico, diferenciando obrigatório, condicional, dispensado e já apresentado válido.
+
+Configurar prazo inicial, suplementar, hipóteses de suspensão e modo de contagem conforme norma; jamais assumir números sem fundamento.
+
+Gerar exigência com minuta validada, expedição, canal, comprovante de ciência e marco inicial do prazo.
+
+Armazenar upload com SHA-256, versão, autor, data/hora, validação antimalware, identificação do processo e recibo eletrônico.
+
+Registrar recebimento administrativo separadamente da aprovação técnica; “carimbo” visual não substitui assinatura eletrônica válida.
+
+4.3 Análise técnica, parecer e ato
+
+Fila por técnico, SLA interno, análise de cada peça (aprovado, aprovado com ressalvas, rejeitado, não aplicável).
+
+Observações, fundamentação, anexos, solicitação de complementações, vistoria e revisão de parecer.
+
+Pré-preencher minuta do parecer a partir dos campos e pendências documentais; texto sempre conferido e assinado por técnico habilitado.
+
+Etapa de decisão por autoridade competente antes da emissão, assinatura, publicação e disponibilização de licença verificável por QR/código.
+
+Relacionar expressamente cada condicionante à licença, prazo, evidência e responsabilidade pelo cumprimento.
+
+4.4 Renovação, acompanhamento e denúncias
+
+Criar agenda de condicionantes e vencimentos, com alertas internos e comunicações eletrônicas conforme autorização legal.
+
+Na renovação, importar histórico, condicionantes cumpridas/pendentes e documentação atualizada; aplicar a regra vigente com avaliação de transição.
+
+Não presumir que o vencimento gera automaticamente infração ou multa: instaurar rito devido, contraditório e defesa onde aplicáveis.
+
+Denúncias: identificação opcional segundo política, localização, narrativa, fotos, triagem, fiscalização, diligência, conclusão e vínculo com empreendimento.
+
+Uma denúncia anterior e requerimento posterior compartilham o dossiê cronológico, mas a denúncia só é encerrada se seu objeto tiver sido efetivamente apurado/resolvido.
+
+5. Máquina de estados do processo
+
+Entidade
+
+Estados principais (proposta)
+
+Eventos e guardas
+
+Requerimento
+
+rascunho > protocolado > triagem > exigência > análise > decisão > encerrado
+
+Protocolo exige campos mínimos; transições registram usuário, motivo e regra
+
+Documento
+
+enviado > recebido > em análise > aceito/ressalva/rejeitado
+
+Reenvio cria nova versão, nunca sobrescreve original
+
+Notificação
+
+minuta > aprovada > expedida > ciência comprovada/sem ciência > prazo > resultado
+
+Início de prazo condicionado a forma de ciência válida
+
+Licença
+
+minuta > aprovada > assinada > publicada > vigente > encerrada/alterada
+
+Validação de competências; histórico de retificações
+
+Denúncia
+
+recebida > triagem > diligência > apuração > conclusão > arquivamento
+
+Proteção de denunciante, acesso por necessidade
+
+6. Motor de regras e legislação
+
+Estratégia: núcleo técnico determinístico configurável, não uma IA que interpreta leis livremente em produção. Cada regra terá ID, município, alcance, atividade, limiares, documento exigível, prazo, base normativa (artigo/anexo), vigência, prioridade, versão, responsável aprovador e conjunto de testes.
+
+Guardar artefatos normativos como fonte original + metadados + revisão humana e aprovação antes de publicação.
+
+Distinguir valores de enquadramento provenientes da planilha, parâmetros da norma e hipóteses ainda não validadas.
+
+Regras conflitantes ou informação insuficiente devem retornar “análise manual necessária”, e não resultado inventado.
+
+Congelar a versão aplicada ao protocolo e prever migração regrada quando lei nova exigir adequação de processos em andamento.
+
+7. Documentos e inteligência artificial
+
+IA recomendada apenas como assistente: extração de campos, classificação de anexos, identificação de peças ausentes, resumos citando fontes, minuta de parecer e comparação de condicionantes. Nunca aprovar automaticamente licença, aplicar multa ou definir competência jurídica sem validação humana.
+
+RAG com fontes oficiais versionadas e citação precisa de dispositivo normativo; resposta “não localizado” quando sem evidência.
+
+Proteção contra instruções maliciosas presentes em PDFs; isolação de dados, revisão humana, avaliação de alucinações.
+
+Registro da versão do modelo, prompt, documentos consultados e aceite humano; não usar dados do município para treinar modelos sem base contratual/legal.
+
+O núcleo continua operando com IA desligada; custo e fornecedor de IA são substituíveis.
+
+8. Arquitetura recomendada
+
+Aplicação web responsiva (Next.js/React), API backend modular (NestJS/TypeScript), PostgreSQL com tenant_id e políticas de isolamento, Redis/filas para eventos e prazos, armazenamento objeto S3 compatível com versionamento e criptografia, serviço de documentos (PDF/A quando adequado), assinatura eletrônica, e provedores transacionais de e-mail/SMS.
+
+Adotar monólito modular no início, com fronteiras explícitas: identidade, cadastro, regras, processos, documentos, notificações, licenças, fiscalização, denúncias, auditoria e administração. Evitar microserviços prematuros.
+
+9. Modelo de dados essencial
+
+Domínio
+
+Entidades essenciais
+
+Locatário e segurança
+
+Municipality, User, Role, Permission, Membership, AccessGrant, AuditEvent
+
+Cadastro
+
+Organization, Establishment, Representative, Professional, Activity, GeoLocation
+
+Processual
+
+Case, Application, WorkflowState, Assignment, Deadline, TimelineEvent
+
+Normativo
+
+LegalSource, RuleSet, RuleVersion, Classification, RequiredDocument, TemplateVersion
+
+Documental
+
+Document, DocumentVersion, Receipt, Review, Signature, Publication
+
+Técnico
+
+Inspection, TechnicalOpinion, Finding, Condition, ComplianceEvidence
+
+Fiscalização
+
+Complaint, Notice, NotificationDelivery, Infraction, Defense, Appeal, Decision
+
+10. Segurança e governança
+
+Autenticação MFA para servidores; RBAC + checagem por recurso e município; acesso de suporte temporário com autorização, trilha e expiração.
+
+Criptografia TLS em trânsito, chaves gerenciadas, criptografia em repouso; backups criptografados, restauração testada, retenção formal e plano de incidentes.
+
+Logs imutáveis ou à prova de adulteração, cadeia de custódia dos anexos, trilhas de assinatura e regras de acesso a denúncias.
+
+LGPD: papéis controlador/operador, finalidade, minimização, relatório de impacto quando indicado, política de retenção e resposta a incidentes.
+
+Nenhum sistema é “100% protegido” ou “sem erros”; estabelecer testes e controles mensuráveis, auditorias independentes antes da produção.
+
+11. Integrações e entrega eletrônica
+
+E-mail com evidências de envio/entrega, mas ciência jurídica depende das regras aplicáveis; leitura de e-mail isoladamente pode ser insuficiente.
+
+Assinatura e validação pública de documento com evidências verificáveis; nível de assinatura conforme ato e regulamentação.
+
+CNPJ e geolocalização mediante fontes oficiais/contratos de API, com fallback manual auditável.
+
+Integração com sistemas municipais, arrecadação, diário oficial e serviços de autenticação apenas após inventário de disponibilidade.
+
+12. Etapas de implementação
+
+Fase
+
+Entrega demonstrável
+
+Gate de aceite
+
+0 — descoberta
+
+Inventário de PDFs, Excel, fluxos, campos, legislação, responsabilidade
+
+Mapa de regras validado por biólogo e autoridade municipal
+
+1 — protótipo
+
+Cadastro fictício, enquadramento demonstrativo, checklist, upload, análise, parecer, licença-modelo
+
+Reunião com walkthrough sem atos oficiais
+
+2 — MVP operacional
+
+Login, protocolo, regras validadas, workflow, arquivo, notificações, auditoria
+
+Homologação assistida com casos reais históricos anonimizados
+
+3 — avançado
+
+Condicionantes, renovação, denúncia, fiscalização, integrações
+
+Teste jurídico, segurança, recuperação e desempenho
+
+4 — SaaS
+
+Provisionamento por município, parametrização, faturamento e suporte
+
+Teste de isolamento multi-tenant e onboarding repetível
+
+13. Critérios de aceite e testes
+
+Teste de matriz legislativa: por atividade, porte, local, data e modalidade, confrontar saídas com gabarito validado.
+
+Teste de prazo: feriados, dias úteis/corridos, ciência, suspensões, reaberturas e prazos vencidos.
+
+Teste de transições: impedir emitir licença com pendência impeditiva ou assinatura não autorizada.
+
+Teste multi-tenant: usuário de município A nunca lê, edita ou enumera dados do B.
+
+Teste de integridade: versões de anexos, hashes, backup/restauração, fila de notificação idempotente, logs e auditoria.
+
+Teste ponta a ponta: empresa protocola > envia 2 de 3 itens > técnico solicita complemento > recebe > emite parecer com revisão > autoridade assina > condição é monitorada > renovação.
+
+14. Riscos prioritários
+
+Risco
+
+Mitigação
+
+Norma mal interpretada ou desatualizada
+
+Parecer jurídico/técnico, fontes versionadas e checklist de publicação
+
+Competência municipal indevida
+
+Bloqueio de enquadramento e escalonamento para analista
+
+Notificação sem ciência comprovada
+
+Estados e evidências por canal; contador só com marco válido
+
+IA cria conclusão infundada
+
+Saída assistiva, citações e revisão obrigatória
+
+Vazamento entre prefeituras
+
+Controles em banco/API, pentest, testes e auditoria
+
+Complexidade e orçamento ilimitados
+
+MVP com escopo fechado, aceite e controle de mudanças
+
+Dependência de fornecedor
+
+Exportação, APIs documentadas, backup e plano de reversibilidade
+
+15. Roteiro para reunião de terça-feira
+
+Apresentar protótipo com empresa fictícia, três documentos exigidos e apenas dois enviados.
+
+Mostrar minuta automática de exigência, prazo parametrizado, recebimento digital, fila do técnico e parecer com pendência pré-preenchida.
+
+Mostrar licença de demonstração (sem validade jurídica), condicionantes e alerta de renovação.
+
+Perguntar ao engenheiro: quem assina cada ato, qual rito muda por atividade, qual norma local predomina, quais exceções, quais prazos e como é feita a ciência.
+
+Não prometer redução de três meses para sete dias sem medir e separar prazo interno de prazo legal e tempo do requerente.
+
+16. Insumos pendentes para especificação executável
+
+Planilha SISLAM ITABERABA.xlsx original, suas fórmulas, abas, macros, validações e exemplos de enquadramento.
+
+PDFs de leis, decretos, resoluções e termos de referência; modelos vigentes de parecer, licença, notificação, auto e condicionantes.
+
+Matriz de atividades/portes/potencial poluidor; tabela de competência municipal; calendário e ritos de ciência; usuários e alçadas.
+
+Processos históricos anonimizados: pelo menos 15 a 30 casos diversos para testes de regressão com gabarito do biólogo.
+
+17. Referências normativas para conferência
+
+Lei Complementar 140/2011 — https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp140.htm
+
+Lei 15.190/2025 (texto atualizado) — https://www2.camara.leg.br/legin/fed/lei/2025/lei-15190-8-agosto-2025-797833-normaatualizada-pl.html
+
+Lei 14.063/2020 — https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2020/lei/l14063.htm
+
+LGPD, Lei 13.709/2018 — https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm
+
+Resoluções CEPRAM/BA — https://www.ba.gov.br/meioambiente/531/resolucoes-cepram
+
+Lei municipal 1.625/2021 (verificar teor e vigência) — https://sapl.itaberaba.ba.leg.br/media/sapl/public/normajuridica/2021/1453/lei-no_1625-2021_0333.pdf
+
+Orientações ANPD para poder público — https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia_orientativo_tratamento_de_dados_pessoais_pelo_poder_publico
+
+Lei 14.133/2021 (contratação pública) — https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm
+
+Nota técnica: esta lista não substitui parecer de vigência e hierarquia normativa. Conteúdo da planilha e 

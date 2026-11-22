@@ -1,0 +1,25 @@
+name: sislam-local
+services:
+  postgres:
+    image: postgres:18-alpine
+    profiles: [infra]
+    environment:
+      POSTGRES_DB: sislam
+      POSTGRES_USER: sislam_migrator
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no .env antes de usar Docker}
+    ports: ['127.0.0.1:5442:5432']
+    volumes: [postgres-data:/var/lib/postgresql]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U sislam_migrator -d sislam']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:8-alpine
+    profiles: [infra]
+    command: [redis-server, --appendonly, 'yes']
+    ports: ['127.0.0.1:6388:6379']
+    volumes: [redis-data:/data]
+volumes:
+  postgres-data:
+  redis-data:

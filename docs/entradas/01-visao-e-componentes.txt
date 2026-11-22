@@ -1,0 +1,105 @@
+SISLAM — Sistema Inteligente de Licenciamento e Gestão Ambiental
+(Projeto de engenharia de software • Versão 1.0)
+
+A proposta é desenvolver uma plataforma completa de gestão ambiental municipal, inicialmente para a Secretaria de Meio Ambiente de Itaberaba, na Bahia, com possibilidade de expansão para outras prefeituras.
+
+Minha recomendação é não construir apenas um sistema de emissão de licenças. Devemos desenvolver uma plataforma que gerencie todo o ciclo administrativo ambiental: desde o primeiro requerimento de uma empresa até a fiscalização, renovação, denúncias, notificações, condicionantes e arquivamento.
+
+O principal diferencial será a automação das regras ambientais com rastreabilidade jurídica. O sistema deverá saber quais documentos solicitar, quais prazos acompanhar, quais procedimentos sugerir e quais informações aproveitar de processos anteriores.
+
+Existe, porém, uma distinção fundamental: a plataforma pode automatizar o enquadramento preliminar, a conferência documental e a preparação dos atos administrativos, mas não deve substituir as decisões técnicas e jurídicas que dependem de autoridade competente.
+1. Visão geral da plataforma
+FLUXO PRINCIPAL DE LICENCIAMENTO
+
+Empresa / Requerente
+
+Cadastro, atividade, localização e requerimento
+
+Motor de enquadramento
+
+Porte, potencial poluidor, competência e documentos exigíveis
+
+Protocolo e documentação
+
+Uploads, recibos, pendências e prazos
+
+Análise técnica
+
+Parecer, vistoria, ressalvas e deliberação
+
+Licença ambiental
+
+Assinatura, publicação e condicionantes
+
+Monitoramento contínuo
+
+Vencimentos, fiscalização, renovação e histórico
+
+O fluxo será configurável por tipo de atividade, procedimento e município. Nem todos os processos precisam percorrer as mesmas etapas.
+2. Os componentes que precisamos desenvolver
+Módulo	Responsabilidade
+Portal do empreendedor	Abrir e acompanhar requerimentos
+Cadastro ambiental	Empresas, responsáveis, empreendimentos e localização
+Enquadramento inteligente	Determinar preliminarmente exigências e modalidade
+Gestão documental	Receber, validar e organizar arquivos
+Processos e protocolos	Controlar movimentações e prazos
+Análise técnica	Pareceres, vistorias e exigências
+Licenciamento	Minutas, assinaturas, emissão e publicação
+Condicionantes	Monitoramento e comprovação de cumprimento
+Fiscalização ambiental	Inspeções, relatórios e evidências
+Notificações e sanções	Comunicações, defesa e tramitação administrativa
+Denúncias ambientais	Recebimento, triagem e apuração
+Inteligência artificial	Auxiliar na leitura, conferência e elaboração
+Arquivo digital	Histórico cronológico e íntegro dos processos
+Administração SaaS	Municípios, usuários, permissões e configurações
+
+
+A arquitetura precisa permitir que cada módulo evolua sem comprometer os demais. Uma alteração na legislação, por exemplo, deverá gerar uma nova versão das regras aplicáveis, sem modificar silenciosamente processos antigos.
+3. Como desenvolver o sistema com segurança
+Eu recomendo usar esta arquitetura:
+Camada	Tecnologia sugerida
+Interface	Next.js + React + TypeScript
+Backend	NestJS + TypeScript
+Banco de dados	PostgreSQL
+Arquivos e documentos	Armazenamento S3 compatível
+Processamento automático	Redis + filas de tarefas
+Inteligência artificial	API de IA substituível + busca em documentos
+Autenticação	Login seguro, MFA e permissões por função
+Infraestrutura	Nuvem com backups, monitoramento e ambientes separados
+
+
+A primeira versão deve ser um monólito modular: um sistema integrado, mas com componentes independentes internamente. Isso reduz a complexidade inicial e facilita futuras expansões.
+Uma regra essencial
+As decisões ambientais não devem ficar diretamente no código.
+
+Por exemplo, em vez de programar que uma determinada empresa precisa sempre apresentar cinco documentos, o sistema consultará uma tabela de regras com a atividade, o porte ambiental, a localização, a modalidade de licenciamento e a legislação vigente.
+
+Assim, quando uma norma mudar, poderemos atualizar a regra sem reconstruir a plataforma inteira.
+4. Como utilizar seus PDFs e a planilha Excel
+A planilha SISLAM e os PDFs serão a base para construir o motor normativo.
+
+O processo correto será:
+1. Inventariar a planilha: identificar abas, fórmulas, cálculos de enquadramento, vínculos e possíveis inconsistências.
+2. Catalogar a legislação: relacionar cada exigência com lei, decreto, resolução, artigo ou anexo.
+3. Transformar as regras em dados estruturados: tabelas de atividades, portes, documentos, condicionantes e prazos.
+4. Construir testes: fornecer exemplos conhecidos e verificar se o sistema apresenta exatamente o enquadramento esperado.
+5. Validar com o biólogo e o órgão competente: só publicar regras revisadas.
+Uma observação importante: localizei referências à planilha mencionada anteriormente, mas não consegui acessar o arquivo Excel original nem os PDFs específicos neste momento. Por isso, ainda não seria correto afirmar que todas as regras foram verificadas.
+
+Entre as fontes que já identifiquei estão a Lei Complementar 140/2011, a Lei Geral do Licenciamento Ambiental 15.190/2025, normas CEPRAM da Bahia e a Lei Municipal 1.625/2021 de Itaberaba.
+5. O que apresentar na reunião de terça-feira
+Minha prioridade seria um protótipo navegável com um cenário completo:
+
+Cadastro de empresa fictícia e abertura de requerimento
+
+Enquadramento preliminar e checklist documental
+
+Upload de dois documentos quando três são exigidos
+
+Detecção da pendência e geração de minuta de notificação
+
+Análise do técnico e geração de parecer preliminar
+
+Simulação de licença, condicionantes e acompanhamento
+
+Isso demonstra o valor do produto sem precisar construir todos os módulos antes da primeira validação.
