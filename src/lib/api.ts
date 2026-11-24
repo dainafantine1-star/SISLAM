@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from './uploads';
 export type Entity = Record<string, any>;
 export const ROLE_LABELS: Record<string, string> = {
   applicant: 'Requerente',
-  protocol: 'Protocolo',
-  analyst: 'Técnico ambiental',
+  protocol: 'Departamento administrativo',
+  analyst: 'Departamento técnico',
   authority: 'Autoridade',
   inspector: 'Fiscalização',
   ombudsman: 'Ouvidoria',
@@ -42,11 +43,14 @@ export const STATUS: Record<string, string> = {
   completed: 'Realizada',
   cancelled: 'Cancelada',
   favorable: 'Favorável',
+  favorable_reservations: 'Favorável com ressalvas e condicionantes',
   unfavorable: 'Desfavorável',
   complement: 'Complementação',
 };
 export const ACTIONS: Record<string, string> = {
   'case.created': 'Requerimento criado',
+  'case.workflow_started': 'Roteiro municipal adotado',
+  'case.workflow_advanced': 'Etapa do fluxograma registrada',
   'case.classification_reviewed': 'Enquadramento revisado pelo técnico',
   'case.refused_demo': 'Indeferimento demonstrativo registrado',
   'support.resource_accessed': 'Consulta pelo suporte autorizado',
@@ -66,6 +70,7 @@ export const ACTIONS: Record<string, string> = {
   'establishment.created': 'Empreendimento cadastrado',
   'rule.version_created': 'Nova versão de regra',
   'demo.case_initialized': 'Processo demonstrativo incluído',
+  'demo.workflow_initialized': 'Exemplo do fluxograma municipal incluído',
   'demo.complaint_initialized': 'Denúncia demonstrativa recebida',
   'demo.inspection_initialized': 'Vistoria demonstrativa agendada',
   'notice.draft_created': 'Minuta de notificação criada',
@@ -83,8 +88,38 @@ export const ACTIONS: Record<string, string> = {
   'calendar.holiday_saved': 'Calendário atualizado',
   'case.renewal_created': 'Renovação iniciada',
 };
+const connectionError =
+  'Não foi possível conectar à API do SISLAM. Verifique se o serviço está disponível e tente novamente.';
+
+async function requestApi<T>(path: string, options: RequestInit = {}): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch('/api/' + path, { cache: 'no-store', ...options });
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    throw new Error(connectionError);
+  }
+  if (response.status === 401 && path !== 'auth/login') window.location.assign('/login');
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error(connectionError);
+  }
+  if (!response.ok) {
+    const message = data && typeof data === 'object' && 'error' in data ? data.error : null;
+    throw new Error(typeof message === 'string' ? message : 'Não foi possível concluir a operação');
+  }
+  return data as T;
+}
+
 export async function api<T = Entity>(path: string, body?: unknown, method = 'POST'): Promise<T> {
-  const response = await fetch('/api/' + path, {
+  if (body instanceof FormData) {
+    for (const value of body.values())
+      if (value instanceof File && value.size > MAX_UPLOAD_BYTES)
+        throw new Error(`Envie um arquivo de até ${MAX_UPLOAD_MB} MB`);
+  }
+  return requestApi<T>(path, {
     cache: 'no-store',
     ...(body === undefined
       ? {}
@@ -94,12 +129,6 @@ export async function api<T = Entity>(path: string, body?: unknown, method = 'PO
           body: body instanceof FormData ? body : JSON.stringify(body),
         }),
   });
-  const data = await response.json();
-  if (!response.ok) {
-    if (response.status === 401 && path !== 'auth/login') window.location.assign('/login');
-    throw new Error(data.error || 'Não foi possível concluir a operação');
-  }
-  return data;
 }
 export function changed() {
   window.dispatchEvent(new Event('sislam:changed'));
@@ -118,13 +147,8 @@ export function useApi<T = Entity>(path: string | null) {
       cachedPath.current = path;
     }
     setError('');
-    void fetch('/api/' + path, { cache: 'no-store', signal: controller.signal })
-      .then(async (response) => {
-        const value = await response.json();
-        if (!response.ok) {
-          if (response.status === 401) window.location.assign('/login');
-          throw new Error(value.error || 'Não foi possível carregar os dados');
-        }
+    void requestApi<T>(path, { signal: controller.signal })
+      .then((value) => {
         if (!controller.signal.aborted) setData(value);
       })
       .catch((e) => {

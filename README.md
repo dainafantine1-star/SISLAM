@@ -13,7 +13,13 @@ Requer Node.js 24. As dependências estão incluídas na instalação local prep
 
 Os dados persistem em `runtime/database`. Os anexos ficam cifrados em `runtime/files`. A primeira execução gera `.env` e senhas aleatórias; execuções posteriores preservam a base. **Não apague `.env`: a chave é necessária para ler anexos, MFA e backups.**
 
+## Demonstração online
+
+Há uma adaptação para executar a demonstração na Vercel com PostgreSQL externo e anexos privados persistentes. Consulte [DEMONSTRACAO-ONLINE.md](docs/DEMONSTRACAO-ONLINE.md) para configuração e limites. A publicação continua sem validade jurídica e usa dados fictícios; o modo operacional permanece bloqueado.
+
 ## O que esta versão faz
+
+O roteiro municipal fornecido em novembro de 2026 agora tem [sequência numerada, três acessos e instruções de demonstração](docs/FLUXOGRAMA-MUNICIPAL.md). Novos requerimentos seguem as etapas do PDF com responsáveis e retornos administrativos. A logo SISLAM Brasil foi aplicada e o nome de Itaberaba abre a seleção de município.
 
 - Login por senha com hash scrypt, sessões opacas em cookie HTTP-only, expiração, troca de senha e MFA TOTP configurável. O modo operacional exige MFA para servidores; sua ativação pública permanece bloqueada nesta entrega.
 - Perfis separados de requerente, protocolo, técnico, autoridade, fiscalização, ouvidoria, administrador municipal e fornecedor. O fornecedor depende de autorização municipal temporária, de leitura e auditada.

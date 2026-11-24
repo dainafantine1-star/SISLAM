@@ -1,0 +1,15 @@
+.git
+.vercel/
+.agents/
+.codex/
+.aws/
+node_modules
+.next
+runtime
+runtime-tests
+test-results
+.env*
+ACESSO-LOCAL.txt
+ACESSO-ONLINE.txt
+*.log
+*.tsbuildinfo

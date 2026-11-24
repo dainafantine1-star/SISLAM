@@ -1,4 +1,5 @@
 'use client';
+import { MAX_UPLOAD_MB } from '@/lib/uploads';
 import { useState } from 'react';
 import Link from 'next/link';
 import {
@@ -321,7 +322,7 @@ export function DocumentsView({ user }: { user: Entity }) {
             onChange={setSearch}
             placeholder="Pesquisar arquivo ou protocolo"
           />
-          <span className="small muted">PDF, PNG e JPEG · até 10 MB</span>
+          <span className="small muted">PDF, PNG e JPEG · até {MAX_UPLOAD_MB} MB</span>
         </div>
         <ErrorBox error={error} />
         <Loaded data={result.data} error={result.error}>
@@ -354,26 +355,43 @@ export function DocumentsView({ user }: { user: Entity }) {
                       <a href={'/api/documents/' + d.id + '/download'} className="table-link">
                         Baixar
                       </a>
-                      {hasRole(user, 'protocol') && d.status === 'sent' && (
-                        <Button
-                          variant="secondary"
-                          onClick={async () => {
-                            try {
-                              await api('documents/' + d.id + '/receive', {});
-                              changed();
-                            } catch (e) {
-                              setError((e as Error).message);
-                            }
-                          }}
-                        >
-                          Receber
-                        </Button>
-                      )}
-                      {hasRole(user, 'analyst') && d.status === 'received' && (
-                        <Button variant="secondary" onClick={() => setReview(d)}>
-                          Analisar
-                        </Button>
-                      )}
+                      {hasRole(user, 'protocol') &&
+                        (!d.workflow_step ||
+                          [
+                            '9',
+                            '14',
+                            '15_receipt',
+                            '23_receipt',
+                            '22',
+                            '24',
+                            '25',
+                            'renewal_ready',
+                          ].includes(d.workflow_step)) &&
+                        d.status === 'sent' && (
+                          <Button
+                            variant="secondary"
+                            onClick={async () => {
+                              try {
+                                await api('documents/' + d.id + '/receive', {});
+                                changed();
+                              } catch (e) {
+                                setError((e as Error).message);
+                              }
+                            }}
+                          >
+                            Receber
+                          </Button>
+                        )}
+                      {hasRole(user, 'analyst') &&
+                        (!d.workflow_step ||
+                          ['10', '15a', '22', '24', '25', 'renewal_ready'].includes(
+                            d.workflow_step,
+                          )) &&
+                        d.status === 'received' && (
+                          <Button variant="secondary" onClick={() => setReview(d)}>
+                            Analisar
+                          </Button>
+                        )}
                     </div>
                   </td>
                 </tr>
@@ -667,7 +685,7 @@ export function NoticesView({ user }: { user: Entity }) {
                       >
                         Ver minuta
                       </Button>
-                      {n.status === 'draft' && hasRole(user, 'authority') && (
+                      {n.status === 'draft' && hasRole(user, 'authority', 'protocol') && (
                         <Button
                           variant="secondary"
                           onClick={() => {
@@ -678,7 +696,7 @@ export function NoticesView({ user }: { user: Entity }) {
                           Aprovar
                         </Button>
                       )}
-                      {n.status === 'approved' && hasRole(user, 'protocol', 'authority') && (
+                      {n.status === 'approved' && hasRole(user, 'protocol') && (
                         <Button
                           variant="secondary"
                           onClick={() => {
@@ -689,7 +707,7 @@ export function NoticesView({ user }: { user: Entity }) {
                           Simular expedição
                         </Button>
                       )}
-                      {n.status === 'dispatched_demo' && hasRole(user, 'protocol', 'authority') && (
+                      {n.status === 'dispatched_demo' && hasRole(user, 'protocol') && (
                         <Button
                           variant="secondary"
                           onClick={() => {
@@ -700,18 +718,17 @@ export function NoticesView({ user }: { user: Entity }) {
                           Registrar ciência
                         </Button>
                       )}
-                      {n.status === 'acknowledged_demo' &&
-                        hasRole(user, 'protocol', 'authority') && (
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              setSelected(n);
-                              setAction('answer');
-                            }}
-                          >
-                            Concluir resposta
-                          </Button>
-                        )}
+                      {n.status === 'acknowledged_demo' && hasRole(user, 'protocol') && (
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setSelected(n);
+                            setAction('answer');
+                          }}
+                        >
+                          Concluir resposta
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>

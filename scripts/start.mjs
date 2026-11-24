@@ -3,7 +3,7 @@ config({ override: true, quiet: true });
 import { spawn, spawnSync, execFile } from 'node:child_process';
 import fs from 'node:fs';
 const production = process.argv.includes('--production');
-const setup = spawnSync(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'api/setup.ts'], {
+const setup = spawnSync(process.execPath, ['scripts/run-typescript.cjs', 'api/setup.ts'], {
   stdio: 'inherit',
   windowsHide: true,
 });
@@ -11,7 +11,7 @@ if (setup.status !== 0) process.exit(setup.status || 1);
 // Setup may have created the local .env on first launch.
 config({ override: true, quiet: true });
 const children = [
-  spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'api/main.ts'], {
+  spawn(process.execPath, ['scripts/run-typescript.cjs', 'api/main.ts'], {
     stdio: 'inherit',
     windowsHide: true,
     env: process.env,
@@ -36,12 +36,13 @@ function stop() {
   stopping = true;
   for (const child of children)
     if (child.pid) {
-      if (process.platform === 'win32')
-        spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
+      if (process.platform === 'win32') {
+        const result = spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
           stdio: 'ignore',
           windowsHide: true,
         });
-      else child.kill('SIGTERM');
+        if (result.status !== 0) child.kill('SIGTERM');
+      } else child.kill('SIGTERM');
     }
   process.exit();
 }

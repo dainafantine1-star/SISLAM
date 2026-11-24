@@ -160,6 +160,8 @@ export class Database {
         connectionTimeoutMillis: 10000,
       });
     else {
+      if (process.env.VERCEL)
+        throw new Error('Configure um PostgreSQL persistente para a demonstração online');
       if (!DEMO()) throw new Error('PostgreSQL externo é obrigatório no modo operacional');
       fs.mkdirSync(dataDirectory(), { recursive: true });
       if (process.env.TEST_MEMORY !== '1') {

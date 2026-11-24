@@ -2535,3 +2535,190 @@ th {
 .nav-group > a {
   min-height: 44px;
 }
+
+/* SISLAM Brasil and the municipal workflow */
+.logo-brand {
+  background: white;
+  border-radius: 10px;
+  padding: 4px 8px;
+  justify-content: center;
+}
+.sislam-logo {
+  display: block;
+  width: 100%;
+  height: 92px;
+  object-fit: cover;
+  object-position: center 49%;
+}
+.sidebar .logo-brand {
+  margin: 16px 18px;
+}
+.login-art .logo-brand {
+  width: 275px;
+  max-width: 100%;
+}
+.login-art .sislam-logo {
+  height: 110px;
+}
+.municipality-picker {
+  position: relative;
+  margin-bottom: 18px;
+}
+.municipality-picker .municipality-card {
+  cursor: pointer;
+  list-style: none;
+  margin-bottom: 0;
+}
+.municipality-picker summary::-webkit-details-marker {
+  display: none;
+}
+.municipality-card > div {
+  flex: 1;
+  min-width: 0;
+}
+.municipality-options {
+  position: absolute;
+  z-index: 20;
+  left: 12px;
+  right: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+  color: var(--ink);
+  box-shadow: 0 12px 30px #142b2420;
+}
+.municipality-options p {
+  font-size: 0.875rem;
+  margin-bottom: 10px;
+}
+.municipality-options button {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #b6d7c8;
+  border-radius: 8px;
+  background: var(--mint);
+  color: var(--dark);
+  text-align: left;
+}
+.municipality-options small {
+  display: block;
+  font-size: 0.875rem;
+  margin-top: 8px;
+}
+.demo-profiles {
+  display: grid;
+  gap: 8px;
+  margin: 22px 0 16px;
+}
+.demo-profiles button {
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink);
+}
+.demo-profiles button[aria-pressed='true'] {
+  border-color: var(--green);
+  background: var(--mint);
+  box-shadow: inset 3px 0 var(--green);
+}
+.demo-profiles strong,
+.demo-profiles small {
+  display: block;
+}
+.demo-profiles small,
+.login-access-hint {
+  font-size: 0.875rem;
+  color: #56675f;
+}
+.login-access-hint {
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.municipal-workflow {
+  margin-bottom: 22px;
+  display: grid;
+  gap: 16px;
+}
+.workflow-current {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.workflow-current p {
+  margin-top: 5px;
+  color: #56675f;
+  font-size: 0.875rem;
+}
+.workflow-number {
+  flex-shrink: 0;
+  min-width: 52px;
+  padding: 12px;
+  background: var(--mint);
+  border: 1px solid #bdd9cd;
+  color: var(--green);
+  border-radius: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+.workflow-waiting {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #eff3f8;
+  color: #314968;
+}
+.workflow-outline summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--green);
+}
+.workflow-outline ol {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.workflow-outline li {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+.workflow-outline li[aria-current='step'] {
+  background: var(--mint);
+  border-color: #87b7a1;
+}
+.workflow-outline li > span {
+  min-width: 35px;
+  font-weight: 800;
+  color: var(--green);
+}
+.workflow-outline small {
+  display: block;
+  color: #56675f;
+}
+@media (max-width: 700px) {
+  .workflow-outline ol {
+    grid-template-columns: 1fr;
+  }
+  .workflow-current {
+    gap: 10px;
+  }
+  .workflow-number {
+    min-width: 42px;
+    padding: 8px;
+  }
+}
+
+.role-guide {
+  margin-bottom: 22px;
+  display: grid;
+  gap: 8px;
+}

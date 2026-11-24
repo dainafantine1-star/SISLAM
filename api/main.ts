@@ -60,12 +60,23 @@ class Errors implements ExceptionFilter {
 })
 export class AppModule {}
 export async function createApplication() {
-  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn'], bodyParser: false });
+  if (!DEMO())
+    throw new Error(
+      'Esta entrega é demonstrativa. A ativação operacional exige homologação normativa, assinatura, canais oficiais e revisão de segurança.',
+    );
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn'],
+    bodyParser: false,
+    abortOnError: false,
+  });
   app.use(helmet());
   app.use(cookieParser());
   app.use(json({ limit: '200kb' }));
   app.use((req: any, res: any, next: any) => {
     res.setHeader('Cache-Control', 'no-store');
+    // The local Next.js proxy otherwise pools sockets that can close between
+    // requests, producing intermittent ECONNRESET/500 during navigation.
+    if (!process.env.VERCEL) res.setHeader('Connection', 'close');
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       const expected = process.env.WEB_ORIGIN || 'http://localhost:3400';
       if (req.get('Origin') !== expected)
@@ -104,7 +115,11 @@ async function main() {
   process.on('SIGINT', close);
   process.on('SIGTERM', close);
 }
-if (!process.env.SISLAM_TEST)
+// Importing this module from Next's API adapter must not start a second local
+// server or open the same database again. Only the explicit CLI entry boots it.
+const entryFile = process.argv[1]?.replaceAll('\\', '/');
+const directApiEntry = entryFile === 'api/main.ts' || entryFile?.endsWith('/api/main.ts');
+if (directApiEntry && !process.env.SISLAM_TEST && !process.env.VERCEL)
   main().catch((error) => {
     console.error(error.message);
     process.exitCode = 1;

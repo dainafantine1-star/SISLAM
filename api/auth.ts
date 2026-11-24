@@ -29,7 +29,7 @@ import {
 } from './core';
 const cookie = () => ({
   httpOnly: true,
-  secure: !DEMO(),
+  secure: !DEMO() || Boolean(process.env.VERCEL),
   sameSite: 'strict' as const,
   path: '/',
   maxAge: 8 * 3600000,
@@ -74,6 +74,8 @@ export class AuthController {
       const fallback = 'scrypt:00112233445566778899aabbccddeeff:' + '00'.repeat(64);
       if (!passwordMatches(b.password, person?.password_hash || fallback) || !person)
         return { error: 'E-mail ou senha inválidos' };
+      // Limit consecutive failures; switching demo profiles after a valid login is legitimate.
+      await q.query('DELETE FROM rate_limits WHERE key=$1', [key]);
       const memberships = (
         await q.query(
           'SELECT m.municipality_id,m.role,c.name FROM memberships m JOIN municipalities c ON c.id=m.municipality_id WHERE m.user_id=$1 AND m.active ORDER BY c.name',

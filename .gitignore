@@ -11,3 +11,9 @@ test-results/
 .env.*
 !.env.example
 runtime-tests/
+
+.vercel/
+ACESSO-ONLINE.txt
+
+.vercel
+.env*

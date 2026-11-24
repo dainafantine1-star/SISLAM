@@ -1,14 +1,25 @@
 export default {
   outputFileTracingRoot: process.cwd(),
   poweredByHeader: false,
+  env: { NEXT_PUBLIC_HOSTED_DEMO: process.env.VERCEL ? '1' : '0' },
   experimental: { cpus: 1 },
+  serverExternalPackages: [
+    '@nestjs/common',
+    '@nestjs/core',
+    '@nestjs/platform-express',
+    '@nestjs/swagger',
+    '@electric-sql/pglite',
+  ],
   async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.API_INTERNAL_URL || 'http://127.0.0.1:3401'}/api/:path*`,
-      },
-    ];
+    if (process.env.VERCEL) return [];
+    return {
+      beforeFiles: [
+        {
+          source: '/api/:path*',
+          destination: `${process.env.API_INTERNAL_URL || 'http://127.0.0.1:3401'}/api/:path*`,
+        },
+      ],
+    };
   },
   async headers() {
     return [

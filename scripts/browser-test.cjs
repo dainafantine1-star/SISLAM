@@ -2,9 +2,9 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { PDFDocument } = require('pdf-lib');
-const base = 'http://localhost:3400';
+const base = process.env.SISLAM_BROWSER_URL || 'http://localhost:3400';
 const password = fs
-  .readFileSync('ACESSO-LOCAL.txt', 'utf8')
+  .readFileSync(process.env.SISLAM_BROWSER_ACCESS_FILE || 'ACESSO-LOCAL.txt', 'utf8')
   .match(/Senha dos perfis fictícios: (.+)/)[1]
   .trim();
 const report = {
@@ -12,9 +12,11 @@ const report = {
   checks: [],
   screenshots: [],
   pageErrors: [],
+  serverErrors: [],
+  interactions: [],
   businessData: 'fictional_demo_only',
 };
-let browser;
+let browser, activePage;
 async function main() {
   fs.mkdirSync('test-results', { recursive: true });
   browser = await chromium.launch({
@@ -23,9 +25,33 @@ async function main() {
     args: ['--no-proxy-server'],
   });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1050 } });
+  await context.exposeBinding('sislamRecordAction', (_source, action) => {
+    report.interactions.push(action);
+  });
+  await context.addInitScript(() => {
+    document.addEventListener(
+      'click',
+      (event) => {
+        const control = event.target?.closest?.('button, a, input[type=checkbox]');
+        if (!control) return;
+        window.sislamRecordAction({
+          route: location.pathname,
+          control: (control.getAttribute('aria-label') || control.innerText || control.type)
+            .trim()
+            .slice(0, 200),
+        });
+      },
+      true,
+    );
+  });
   const page = await context.newPage();
+  activePage = page;
   page.setDefaultTimeout(45000);
   page.on('pageerror', (e) => report.pageErrors.push(e.message));
+  page.on('response', (response) => {
+    if (response.status() >= 500)
+      report.serverErrors.push({ url: response.url(), status: response.status() });
+  });
   async function screenshot(name) {
     await page.evaluate(() => document.fonts.ready);
     const file = 'test-results/' + name + '.png';
@@ -36,6 +62,16 @@ async function main() {
     await context.clearCookies();
     await page.goto(base + '/login', { waitUntil: 'domcontentloaded' });
     await page.getByLabel('Senha', { exact: true }).fill(password);
+    if (!report.checks.includes('login_password_visibility_controls')) {
+      await page.getByRole('button', { name: 'Mostrar senha', exact: true }).click();
+      assert.equal(await page.getByLabel('Senha', { exact: true }).getAttribute('type'), 'text');
+      await page.getByRole('button', { name: 'Ocultar senha', exact: true }).click();
+      assert.equal(
+        await page.getByLabel('Senha', { exact: true }).getAttribute('type'),
+        'password',
+      );
+      report.checks.push('login_password_visibility_controls');
+    }
     await page.getByLabel('Perfil da demonstração').selectOption(slug + '@demo.sislam.test');
     await page.getByRole('button', { name: 'Entrar no sistema', exact: true }).click();
     await page.waitForURL('**/painel');
@@ -47,11 +83,12 @@ async function main() {
     return response.json();
   }
   async function postAction(path, action) {
-    const response = page.waitForResponse(
-      (r) => r.url().endsWith('/api/' + path) && r.request().method() === 'POST',
-    );
-    await action();
-    const result = await response;
+    const [result] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().endsWith('/api/' + path) && r.request().method() === 'POST',
+      ),
+      action(),
+    ]);
     const value = await result.json();
     assert(result.ok(), `${path}: ${result.status()} ${value.error || ''}`);
     return value;
@@ -73,6 +110,25 @@ async function main() {
       .fill('Movimentação fictícia para verificação do fluxo no navegador.');
     await saveModal(`cases/${caseId}/transition`, 'Registrar movimentação');
   }
+  await page.route(
+    '**/api/auth/me',
+    (route) =>
+      route.fulfill({
+        status: 404,
+        contentType: 'text/plain',
+        body: 'The page could not be found\n\nDNS_HOSTNAME_RESOLVED_PRIVATE',
+      }),
+    { times: 1 },
+  );
+  await page.goto(base + '/painel', { waitUntil: 'domcontentloaded' });
+  await page
+    .getByRole('alert')
+    .filter({ hasText: 'Não foi possível conectar à API do SISLAM' })
+    .waitFor();
+  assert.equal(await page.getByRole('status').filter({ hasText: 'Carregando' }).count(), 0);
+  await page.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
+  await page.waitForURL('**/login');
+  report.checks.push('plain_text_api_error_and_retry_to_login');
   await login('admin');
   await page.getByRole('heading', { name: 'Processos recentes', exact: true }).waitFor();
   await screenshot('painel-desktop');
@@ -98,27 +154,48 @@ async function main() {
     ['administracao', 'Administração'],
     ['conta', 'Minha conta'],
   ]) {
-    await page.goto(base + '/' + route, { waitUntil: 'domcontentloaded' });
+    await page.locator('.sidebar a[href="/' + route + '"]').click();
     await page.getByRole('heading', { name: heading, exact: true, level: 1 }).waitFor();
     assert.equal(await page.getByText('Acesso restrito', { exact: true }).count(), 0);
   }
   report.checks.push('all_administrator_categories_render');
+  const adminSession = await get('auth/me');
+  const homeMunicipality = adminSession.user.municipalityId;
+  const otherMunicipality = adminSession.memberships.find((m) => m.id !== homeMunicipality);
+  assert(otherMunicipality);
+  const homeRegistry = await get('registry');
+  const switched = await page.request.post(base + '/api/auth/municipality', {
+    headers: { Origin: base },
+    data: { municipalityId: otherMunicipality.id },
+  });
+  assert(switched.ok());
+  const isolatedRegistry = await get('registry');
+  assert.equal(isolatedRegistry.organizations.length, 1);
+  assert.equal(
+    isolatedRegistry.organizations.some((o) =>
+      homeRegistry.organizations.some((h) => h.id === o.id),
+    ),
+    false,
+  );
+  assert(
+    (
+      await page.request.post(base + '/api/auth/municipality', {
+        headers: { Origin: base },
+        data: { municipalityId: homeMunicipality },
+      })
+    ).ok(),
+  );
+  report.checks.push('hosted_municipality_isolation');
   const doc = await PDFDocument.create();
   doc.addPage();
   const pdf = Buffer.from(await doc.save());
   await login('requerente');
-  await page.goto(base + '/processos');
-  await page.getByRole('button', { name: 'Novo requerimento', exact: true }).click();
-  const dialog = page.getByRole('dialog');
-  await dialog
-    .getByLabel('Empreendimento', { exact: true })
-    .selectOption({ label: 'Madeireira Serra Verde (fictícia)' });
-  await dialog
-    .getByLabel('Objeto do requerimento')
-    .fill('Fluxo fictício de verificação pelo navegador');
-  await dialog.getByRole('button', { name: 'Criar requerimento', exact: true }).click();
-  await page.waitForURL(/\/processos\/[a-f0-9-]{36}$/);
-  const caseId = page.url().split('/').at(-1);
+  // Preserve coverage for existing historical cases. New UI-created cases are
+  // exercised separately through the complete numbered municipal workflow.
+  const historical = (await get('cases')).find((c) => c.status === 'draft' && !c.workflow_step);
+  assert(historical, 'A fixture precisa de um rascunho histórico');
+  const caseId = historical.id;
+  await page.goto(base + '/processos/' + caseId);
   const conditionTitle = 'Relatório fictício de acompanhamento ambiental ' + caseId.slice(0, 8);
   await page.getByRole('button', { name: 'Protocolar requerimento', exact: true }).click();
   await page.getByRole('dialog').getByRole('checkbox').check();
@@ -141,7 +218,13 @@ async function main() {
   const incomplete = await get('cases/' + caseId);
   assert.equal(incomplete.documents.length, 2);
   assert.equal(incomplete.checklist.length, 3);
-  report.checks.push('new_application_protocol_and_two_of_three_documents');
+  const originalDocument = await page.request.get(
+    base + '/api/documents/' + incomplete.documents[0].id + '/download',
+  );
+  assert(originalDocument.ok());
+  assert.deepEqual(await originalDocument.body(), pdf);
+  report.checks.push('private_encrypted_document_round_trip');
+  report.checks.push('historical_application_protocol_and_two_of_three_documents');
   const card = page
     .locator('.document-item')
     .filter({ has: page.getByRole('heading', { name: 'Planta de localização', exact: true }) });
@@ -230,6 +313,14 @@ async function main() {
   );
   await page.getByRole('button', { name: 'Publicar modelo', exact: true }).click();
   await page.getByRole('link', { name: 'Verificar código', exact: true }).waitFor();
+  const downloadedLicense = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Baixar PDF-modelo', exact: true }).click();
+  assert((await downloadedLicense).suggestedFilename().endsWith('.pdf'));
+  await page.getByRole('link', { name: 'Verificar código', exact: true }).click();
+  await page.getByRole('heading', { name: 'Verificação de documento', exact: true }).waitFor();
+  await page.getByRole('heading', { name: license.number, exact: true }).waitFor();
+  await page.goto(base + '/processos/' + caseId);
+  await page.getByRole('tab', { name: 'Licença e condicionantes', exact: true }).click();
   const pdfResponse = await page.request.get(base + '/api/licenses/' + license.id + '/pdf');
   assert(pdfResponse.ok());
   assert.equal((await pdfResponse.body()).subarray(0, 5).toString(), '%PDF-');
@@ -282,13 +373,34 @@ async function main() {
   await page.getByRole('dialog').waitFor({ state: 'hidden' });
   await conditionRow.getByText('Cumprida', { exact: true }).waitFor();
   report.checks.push('condition_evidence_submitted_and_reviewed');
+  // Credential and administration scenarios run only in the isolated fixture.
+  if (process.env.SISLAM_TEST === '1')
+    await require('./browser-extended.cjs')({
+      page,
+      context,
+      base,
+      password,
+      get,
+      postAction,
+      saveModal,
+      login,
+      report,
+      caseId,
+      pdf,
+    });
   await login('admin');
   await page.goto(base + '/auditoria');
   await page.getByRole('button', { name: 'Verificar integridade', exact: true }).click();
   await page.getByRole('status').filter({ hasText: 'Cadeia íntegra' }).waitFor();
   assert.deepEqual(report.pageErrors, []);
+  assert.deepEqual(report.serverErrors, []);
   report.checks.push('audit_chain_and_no_browser_page_errors');
   report.passed = true;
+  report.coverage = {
+    routes: [...new Set(report.interactions.map((action) => action.route))],
+    controls: [...new Set(report.interactions.map((action) => action.control))],
+    totalInteractions: report.interactions.length,
+  };
   report.completedAt = new Date().toISOString();
 }
 main()
@@ -297,8 +409,28 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
+    if (!report.passed && activePage && !activePage.isClosed()) {
+      report.failedUrl = activePage.url();
+      await activePage
+        .screenshot({ path: 'test-results/failure.png', fullPage: true })
+        .catch(() => {});
+      report.visibleErrors = await activePage
+        .getByRole('alert')
+        .allTextContents()
+        .catch(() => []);
+    }
     await browser?.close();
     fs.mkdirSync('test-results', { recursive: true });
     fs.writeFileSync('test-results/browser.json', JSON.stringify(report, null, 2));
-    console.log(JSON.stringify(report));
+    console.log(
+      JSON.stringify({
+        ...report,
+        interactions: undefined,
+        coverage: report.coverage && {
+          routes: report.coverage.routes.length,
+          controls: report.coverage.controls.length,
+          totalInteractions: report.coverage.totalInteractions,
+        },
+      }),
+    );
   });

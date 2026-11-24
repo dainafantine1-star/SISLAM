@@ -209,8 +209,13 @@ export function Workspace({ section, caseId }: { section: string; caseId?: strin
     return (
       <div className="boot">
         <Leaf size={36} />
-        <Loading />
+        {!session.error && <Loading />}
         <ErrorBox error={session.error} />
+        {session.error && (
+          <Button variant="secondary" onClick={session.reload}>
+            Tentar novamente
+          </Button>
+        )}
       </div>
     );
   const user = session.data.user,
@@ -244,23 +249,47 @@ export function Workspace({ section, caseId }: { section: string; caseId?: strin
   );
   const sidebar = (
     <>
-      <Link href="/painel" className="brand">
-        <span className="brand-mark">
-          <Leaf size={24} />
-        </span>
-        <span>
-          SISLAM<small>GESTÃO AMBIENTAL</small>
-        </span>
+      <Link href="/painel" className="brand logo-brand" aria-label="SISLAM Brasil · painel">
+        <img
+          className="sislam-logo"
+          src="/sislam-brasil.jpeg"
+          alt="SISLAM Brasil — Sistema Inteligente de Licenciamento Ambiental"
+        />
       </Link>
-      <div className="municipality-card">
-        <span className="municipality-icon">
-          <Building2 size={21} />
-        </span>
-        <div>
-          <strong>{municipality?.name}</strong>
-          <small>Secretaria de Meio Ambiente</small>
+      <details className="municipality-picker">
+        <summary className="municipality-card" aria-label="Escolher município">
+          <span className="municipality-icon">
+            <Building2 size={21} />
+          </span>
+          <div>
+            <strong>{municipality?.name}</strong>
+            <small>Secretaria de Meio Ambiente</small>
+          </div>
+          <ChevronDown size={16} />
+        </summary>
+        <div className="municipality-options" aria-label="Municípios disponíveis">
+          <p>Escolha seu município</p>
+          {session.data.memberships
+            .filter((m: Entity) => m.name === 'Itaberaba')
+            .map((m: Entity) => (
+              <button
+                type="button"
+                key={m.id}
+                aria-pressed={m.id === user.municipalityId}
+                onClick={async (event) => {
+                  if (m.id !== user.municipalityId) {
+                    await api('auth/municipality', { municipalityId: m.id });
+                    window.location.assign('/painel');
+                  } else event.currentTarget.closest('details')?.removeAttribute('open');
+                }}
+              >
+                Itaberaba / BA{' '}
+                <small>{m.id === user.municipalityId ? 'Selecionado' : 'Disponível'}</small>
+              </button>
+            ))}
+          <small>Outros municípios serão disponibilizados após configuração.</small>
         </div>
-      </div>
+      </details>
       <nav aria-label="Menu principal">{links}</nav>
       <div className="sidebar-footer">
         <div className="local-help">

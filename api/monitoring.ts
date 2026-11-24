@@ -32,6 +32,7 @@ import {
   encrypt,
 } from './core';
 import { caseRow, checklist, blockingItems } from './cases';
+import { requireWorkflowStep } from './municipal-workflow';
 export function dueDate(
   start: string,
   days: number,
@@ -116,6 +117,8 @@ export class MonitoringController {
       .parse(input);
     return this.db.tenant(r.actor, async (q) => {
       const row = await caseRow(q, caseId, true);
+      if (row.workflow_step)
+        throw new BadRequestException('Use a decisão de arquivamento na etapa 19 do fluxograma.');
       if (row.status !== 'decision')
         throw new BadRequestException('O processo precisa estar na etapa de decisão');
       const opinion = (
@@ -160,7 +163,7 @@ export class MonitoringController {
     @Param('id') caseId: string,
     @Body() input: unknown,
   ) {
-    allow(r.actor, 'authority');
+    allow(r.actor, 'authority', 'protocol');
     const b = z
       .object({
         validUntil: z.iso.date(),
@@ -176,6 +179,11 @@ export class MonitoringController {
       throw new BadRequestException('Informe uma data de validade futura');
     return this.db.tenant(r.actor, async (q) => {
       const row = await caseRow(q, caseId, true);
+      if (r.actor.role === 'protocol' && (!DEMO() || row.workflow_step !== '21'))
+        throw new ForbiddenException(
+          'O administrativo só registra modelos demonstrativos na etapa 21.',
+        );
+      requireWorkflowStep(row, ['21']);
       if (row.status !== 'decision')
         throw new BadRequestException('O processo deve estar na etapa de decisão');
       if (row.classification?.manual || blockingItems(await checklist(q, row)).length)
@@ -185,7 +193,11 @@ export class MonitoringController {
           row.id,
         ])
       ).rows[0];
-      if (!opinion || opinion.status !== 'reviewed' || opinion.conclusion !== 'favorable')
+      if (
+        !opinion ||
+        opinion.status !== 'reviewed' ||
+        !['favorable', 'favorable_reservations'].includes(opinion.conclusion)
+      )
         throw new BadRequestException('É necessário parecer favorável revisado');
       if (opinion.author_id === r.actor.id)
         throw new ForbiddenException(
@@ -285,7 +297,7 @@ export class MonitoringController {
     @Param('id') licenseId: string,
     @Body() input: unknown,
   ) {
-    allow(r.actor, 'authority');
+    allow(r.actor, 'authority', 'analyst');
     const b = z
       .object({
         title: z.string().trim().min(8).max(1000),
@@ -297,6 +309,13 @@ export class MonitoringController {
       const license = (await q.query('SELECT * FROM licenses WHERE id=$1', [id(licenseId)]))
         .rows[0];
       if (!license) throw new NotFoundException('Licença não encontrada');
+      if (r.actor.role === 'analyst') {
+        const process = await caseRow(q, license.case_id, true);
+        if (!DEMO() || !['21', '22'].includes(process.workflow_step))
+          throw new ForbiddenException(
+            'O técnico registra condicionantes demonstrativas nas etapas 21 e 22.',
+          );
+      }
       const saved = (
         await q.query(
           'INSERT INTO conditions(municipality_id,license_id,case_id,title,responsible,due_date) VALUES($1,$2,$3,$4,$5,$6) RETURNING *',
@@ -388,7 +407,8 @@ export class MonitoringController {
       async (q) =>
         (
           await q.query(
-            'SELECT n.*,c.protocol FROM notices n JOIN cases c ON c.id=n.case_id ORDER BY n.created_at DESC LIMIT 500',
+            "SELECT n.*,c.protocol FROM notices n JOIN cases c ON c.id=n.case_id WHERE ($1::boolean OR n.status IN ('dispatched_demo','acknowledged_demo','answered')) ORDER BY n.created_at DESC LIMIT 500",
+            [r.actor.role !== 'applicant'],
           )
         ).rows,
     );
@@ -453,7 +473,7 @@ export class MonitoringController {
         .rows[0];
       if (!row) throw new NotFoundException('Notificação não encontrada');
       if (b.action === 'approve') {
-        allow(r.actor, 'authority');
+        allow(r.actor, 'authority', 'protocol');
         if (row.status !== 'draft')
           throw new BadRequestException('A minuta não está disponível para aprovação');
         await q.query("UPDATE notices SET status='approved',approved_by=$1 WHERE id=$2", [
@@ -461,6 +481,7 @@ export class MonitoringController {
           row.id,
         ]);
       } else if (b.action === 'dispatch_demo') {
+        allow(r.actor, 'protocol');
         if (!DEMO())
           throw new BadRequestException(
             'Configure o canal oficial de comunicação antes de expedir',
@@ -480,6 +501,7 @@ export class MonitoringController {
           ],
         );
       } else if (b.action === 'acknowledge_demo') {
+        allow(r.actor, 'protocol');
         if (
           !DEMO() ||
           row.status !== 'dispatched_demo' ||
@@ -505,6 +527,7 @@ export class MonitoringController {
           [at, b.evidence, due, row.id],
         );
       } else {
+        allow(r.actor, 'protocol');
         if (row.status !== 'acknowledged_demo')
           throw new BadRequestException('A notificação ainda não tem ciência registrada');
         await q.query("UPDATE notices SET status='answered' WHERE id=$1", [row.id]);

@@ -4,14 +4,15 @@
   "private": true,
   "description": "SISLAM — Sistema Inteligente de Licenciamento e Gestão Ambiental",
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "node scripts/start.mjs",
-    "setup": "tsx api/setup.ts",
-    "api": "tsx api/main.ts",
+    "setup": "node scripts/run-typescript.cjs api/setup.ts",
+    "setup:online": "tsx scripts/setup-online.ts",
+    "api": "node scripts/run-typescript.cjs api/main.ts",
     "web": "next dev --webpack -p 3400",
-    "build": "next build --webpack",
+    "build": "node scripts/build.mjs",
     "start": "node scripts/start.mjs --production",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -19,6 +20,7 @@
     "verify:backup": "tsx scripts/verify-backup.ts",
     "restore": "tsx scripts/restore.ts",
     "test:browser": "node scripts/browser-test.cjs",
+    "test:browser:isolated": "node scripts/browser-suite.cjs",
     "format": "prettier --write api src scripts tests *.json *.mjs"
   },
   "dependencies": {
@@ -28,6 +30,7 @@
     "@nestjs/core": "^11.1.0",
     "@nestjs/platform-express": "^11.1.0",
     "@nestjs/swagger": "^11.0.0",
+    "@vercel/blob": "^2.9.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^18.0.0",
     "helmet": "^8.1.0",

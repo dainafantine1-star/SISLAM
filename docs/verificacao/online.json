@@ -1,0 +1,38 @@
+{
+  "verifiedAt": "2026-11-23T02:56:29.488Z",
+  "url": "https://sislam-of9c.vercel.app",
+  "deploymentId": "dpl_CAocr5MtuspQrQzGWrFTKVsyBttr",
+  "status": "READY",
+  "runtime": "nodejs24.x",
+  "typecheck": "passed",
+  "unitAndWorkflowTests": {
+    "passed": 33,
+    "files": 3
+  },
+  "build": "passed",
+  "publicUnauthenticatedSession": {
+    "status": 401,
+    "contentType": "application/json"
+  },
+  "browser": {
+    "passed": true,
+    "checks": [
+      "plain_text_api_error_and_retry_to_login",
+      "administrator_login_and_dashboard",
+      "mobile_dashboard_drawer_no_horizontal_overflow",
+      "all_administrator_categories_render",
+      "hosted_municipality_isolation",
+      "private_encrypted_document_round_trip",
+      "new_application_protocol_and_two_of_three_documents",
+      "protocol_receipt_technical_review_opinion_and_submission",
+      "separate_authority_license_model_pdf_and_public_verification",
+      "condition_evidence_submitted_and_reviewed",
+      "audit_chain_and_no_browser_page_errors"
+    ],
+    "pageErrors": []
+  },
+  "data": "fictional_demo_only",
+  "officialValidity": false,
+  "uploadLimitMB": 3,
+  "localEnvironmentAndAccessPreserved": true
+}

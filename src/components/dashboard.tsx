@@ -13,7 +13,7 @@ import {
   Check,
   Building2,
 } from 'lucide-react';
-import { useApi, Entity, STATUS, ACTIONS, datetime, date, hasRole } from '@/lib/api';
+import { useApi, Entity, STATUS, ACTIONS, ROLE_LABELS, datetime, date, hasRole } from '@/lib/api';
 import { PageHeading, Kpi, Loading, ErrorBox, Badge, Table, Empty } from './ui';
 export function Dashboard({ user }: { user: Entity }) {
   const { data, error } = useApi('dashboard');
@@ -46,6 +46,22 @@ export function Dashboard({ user }: { user: Entity }) {
           )
         }
       />
+      {['applicant', 'protocol', 'analyst'].includes(user.role) && (
+        <section className="card padded role-guide">
+          <h2>Painel · {ROLE_LABELS[user.role]}</h2>
+          <p>
+            {user.role === 'applicant'
+              ? 'Cadastre empresas e empreendimentos, acompanhe vários clientes nesta conta e responda às comunicações do administrativo.'
+              : user.role === 'protocol'
+                ? 'Receba solicitações, confira duplicidades, protocole e encaminhe ao técnico. Comunique ao requerente os documentos e complementações solicitados.'
+                : 'Confira o enquadramento, defina documentos e estudos, registre análises, vistorias e pareceres. Encaminhe as solicitações ao administrativo.'}
+          </p>
+          <p className="muted">
+            Requerente envia → administrativo confere → técnico analisa → administrativo comunica →
+            requerente responde.
+          </p>
+        </section>
+      )}
       <section className="overview-banner">
         <div>
           <span className="banner-tag">

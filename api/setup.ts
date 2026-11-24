@@ -7,6 +7,7 @@ import { FileStore } from './documents';
 import { CasesService } from './cases';
 import { DocumentsService } from './documents';
 import { digest } from './core';
+import { municipalWorkflow } from './municipal-workflow';
 export const profiles = [
   ['admin', 'Marina Santos', 'municipal_admin'],
   ['protocolo', 'Clara Nunes', 'protocol'],
@@ -200,6 +201,62 @@ export async function seed(db: Database, password: string) {
     ).rows[0];
     return { municipality, other, actors, caseIds, otherOrg };
   });
+  await completeDemoAssets(db, {
+    municipality: { id: String(data.municipality.id) },
+    actors: data.actors,
+    caseIds: data.caseIds,
+  });
+  return { created: true, ...data };
+}
+
+type DemoSeed = { municipality: { id: string }; actors: Record<string, Actor>; caseIds: string[] };
+
+// Resume only the known fictional fixture. Existing originals and events stay intact.
+export async function resumeDemoSetup(db: Database) {
+  if (!DEMO()) throw new Error('A preparação de exemplos exige modo demonstrativo');
+  const data = await db.system(async (q) => {
+    const municipality = (
+      await q.query("SELECT id FROM municipalities WHERE code='ITABERABA-DEMO'")
+    ).rows[0];
+    if (!municipality) throw new Error('Município demonstrativo não encontrado');
+    const actors: Record<string, Actor> = {};
+    for (const [slug] of profiles) {
+      const user = (
+        await q.query(
+          'SELECT u.id,u.name,u.email,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE u.email=$1 AND m.municipality_id=$2',
+          [slug + '@demo.sislam.test', municipality.id],
+        )
+      ).rows[0];
+      if (!user) throw new Error('Perfil demonstrativo não encontrado');
+      actors[slug] = {
+        ...user,
+        municipalityId: municipality.id,
+        mfa: false,
+        session: 'seed',
+      } as Actor;
+    }
+    const cases = (
+      await q.query(
+        "SELECT c.id FROM cases c JOIN establishments e ON e.id=c.establishment_id AND e.municipality_id=c.municipality_id JOIN organizations o ON o.id=e.organization_id AND o.municipality_id=e.municipality_id WHERE c.municipality_id=$1 AND c.owner_id=$2 AND o.registration=ANY($3) AND c.title='Requerimento de licença ambiental — ' || replace(e.name,' (fictícia)','') ORDER BY o.registration",
+        [
+          municipality.id,
+          actors.requerente.id,
+          Array.from({ length: 8 }, (_, i) => 'DEMO-' + String(i + 1).padStart(4, '0')),
+        ],
+      )
+    ).rows;
+    if (cases.length !== 8)
+      throw new Error('Cenário demonstrativo não reconhecido; base preservada');
+    return {
+      municipality: { id: String(municipality.id) },
+      actors,
+      caseIds: cases.map((c) => String(c.id)),
+    };
+  });
+  await completeDemoAssets(db, data);
+}
+
+async function completeDemoAssets(db: Database, data: DemoSeed) {
   const files = new FileStore(),
     documents = new DocumentsService(db, files);
   const pdf = await PDFDocument.create(),
@@ -208,18 +265,40 @@ export async function seed(db: Database, password: string) {
   page.drawText('SISLAM - DOCUMENTO FICTICIO PARA DEMONSTRACAO', { x: 45, y: 760, size: 14, font });
   page.drawText('Sem validade juridica. Conteudo de exemplo.', { x: 45, y: 730, size: 11, font });
   const buffer = Buffer.from(await pdf.save());
-  for (const requirementKey of ['cadastro', 'memorial'])
+  for (const requirementKey of ['cadastro', 'memorial']) {
+    const exists = await db.tenant(
+      data.actors.requerente,
+      async (q) =>
+        (
+          await q.query(
+            'SELECT id FROM documents WHERE case_id=$1 AND requirement_key=$2 LIMIT 1',
+            [data.caseIds[0], requirementKey],
+          )
+        ).rows.length > 0,
+    );
+    if (exists) continue;
     await documents.upload(data.actors.requerente, data.caseIds[0], requirementKey, {
       buffer,
       originalname: requirementKey + '-demonstracao.pdf',
       mimetype: 'application/pdf',
       size: buffer.length,
     } as Express.Multer.File);
+  }
   for (const caseId of data.caseIds)
-    await db.tenant(data.actors.admin, (q) =>
-      audit(q, data.actors.admin, 'demo.case_initialized', { synthetic: true }, caseId),
-    );
+    await db.tenant(data.actors.admin, async (q) => {
+      const exists =
+        (
+          await q.query(
+            "SELECT id FROM audit_events WHERE case_id=$1 AND action='demo.case_initialized' LIMIT 1",
+            [caseId],
+          )
+        ).rows.length > 0;
+      if (!exists)
+        await audit(q, data.actors.admin, 'demo.case_initialized', { synthetic: true }, caseId);
+    });
   await db.tenant(data.actors.ouvidoria, async (q) => {
+    if ((await q.query("SELECT id FROM complaints WHERE protocol='DEN-DEMO-0001'")).rows.length)
+      return;
     await q.query(
       "INSERT INTO complaints(municipality_id,protocol,title,narrative,location,created_by) VALUES($1,'DEN-DEMO-0001','Descarte irregular — exemplo','Relato inteiramente fictício para demonstrar o encaminhamento à fiscalização.','Localização demonstrativa: bairro fictício', $2)",
       [data.municipality.id, data.actors.ouvidoria.id],
@@ -227,6 +306,15 @@ export async function seed(db: Database, password: string) {
     await audit(q, data.actors.ouvidoria, 'demo.complaint_initialized', { synthetic: true });
   });
   await db.tenant(data.actors.fiscal, async (q) => {
+    if (
+      (
+        await q.query('SELECT id FROM inspections WHERE case_id=$1 AND title=$2', [
+          data.caseIds[1],
+          'Vistoria inicial — cenário demonstrativo',
+        ])
+      ).rows.length
+    )
+      return;
     await q.query(
       'INSERT INTO inspections(municipality_id,case_id,inspector_id,title,scheduled_at) VALUES($1,$2,$3,$4,$5)',
       [
@@ -245,7 +333,6 @@ export async function seed(db: Database, password: string) {
       data.caseIds[1],
     );
   });
-  return { created: true, ...data };
 }
 async function main() {
   if (!fs.existsSync('.env')) {
@@ -265,6 +352,7 @@ async function main() {
     await db.migrate();
     const password = 'Sislam-' + randomBytes(9).toString('base64url') + '!';
     const result = await seed(db, password);
+    await ensureWorkflowDemo(db);
     if (result.created) {
       fs.writeFileSync(
         'ACESSO-LOCAL.txt',
@@ -277,7 +365,77 @@ async function main() {
     await db.close();
   }
 }
-if (!process.env.SISLAM_TEST)
+// Add a separate, identifiable fictional example; never replace existing cases or credentials.
+export async function ensureWorkflowDemo(db: Database) {
+  if (!DEMO()) throw new Error('O exemplo do fluxograma exige modo demonstrativo.');
+  const actor = await db.system(
+    async (q) =>
+      (
+        await q.query(
+          "SELECT u.id,u.email,u.name,m.role,m.municipality_id AS \"municipalityId\" FROM users u JOIN memberships m ON m.user_id=u.id JOIN municipalities c ON c.id=m.municipality_id WHERE u.email='requerente@demo.sislam.test' AND c.code='ITABERABA-DEMO' AND m.role='applicant' AND m.active AND u.active",
+        )
+      ).rows[0],
+  );
+  if (!actor) return;
+  await db.tenant({ ...actor, mfa: false, session: 'seed' } as Actor, async (q) => {
+    const title = 'Demonstração do fluxograma municipal — 25 etapas';
+    if ((await q.query('SELECT id FROM cases WHERE title=$1', [title])).rows.length) return;
+    let organization = (
+      await q.query("SELECT id FROM organizations WHERE registration='DEMO-FLUXO-25'")
+    ).rows[0];
+    if (!organization)
+      organization = (
+        await q.query(
+          'INSERT INTO organizations(municipality_id,owner_id,name,registration,representative) VALUES($1,$2,$3,$4,$5) RETURNING id',
+          [
+            actor.municipalityId,
+            actor.id,
+            'Empresa Roteiro Municipal (fictícia)',
+            'DEMO-FLUXO-25',
+            'Responsável demonstrativo',
+          ],
+        )
+      ).rows[0];
+    let establishment = (
+      await q.query('SELECT id FROM establishments WHERE organization_id=$1', [organization.id])
+    ).rows[0];
+    if (!establishment)
+      establishment = (
+        await q.query(
+          'INSERT INTO establishments(municipality_id,organization_id,name,activity,address,capacity,area) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+          [
+            actor.municipalityId,
+            organization.id,
+            'Empresa Roteiro Municipal (fictícia)',
+            'DEMO-MADEIRA',
+            'Endereço fictício em Itaberaba',
+            50,
+            100,
+          ],
+        )
+      ).rows[0];
+    const process = (
+      await q.query(
+        "INSERT INTO cases(municipality_id,establishment_id,owner_id,title,workflow_step,workflow_snapshot) VALUES($1,$2,$3,$4,'1',$5) RETURNING id",
+        [
+          actor.municipalityId,
+          establishment.id,
+          actor.id,
+          title,
+          JSON.stringify(municipalWorkflow),
+        ],
+      )
+    ).rows[0];
+    await audit(
+      q,
+      { ...actor, mfa: false, session: 'seed' } as Actor,
+      'demo.workflow_initialized',
+      { synthetic: true, version: municipalWorkflow.version },
+      process.id,
+    );
+  });
+}
+if (!process.env.SISLAM_TEST && !process.env.VERCEL)
   main().catch((error) => {
     console.error('Setup:', error.code || error.message);
     process.exitCode = 1;

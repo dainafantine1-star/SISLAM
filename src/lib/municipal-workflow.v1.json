@@ -1,0 +1,503 @@
+{
+  "version": "municipal-ba-1",
+  "source": "fluxograma municipio.pdf, página 81",
+  "demonstration": true,
+  "note": "Roteiro demonstrativo extraído do fluxograma fornecido. Não homologa competência, taxas, prazos ou modalidades. A comunicação externa passa pelo administrativo.",
+  "steps": [
+    {
+      "id": "1",
+      "title": "Solicitar abertura do processo de licenciamento",
+      "role": "applicant",
+      "status": "draft",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Enviar solicitação ao administrativo",
+          "to": "2"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Receber pedido, conferir duplicidade e gerar número do processo",
+      "role": "protocol",
+      "status": "filed",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Conferir e encaminhar ao técnico",
+          "to": "3"
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Receber pedido do departamento administrativo",
+      "role": "analyst",
+      "status": "screening",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Receber pedido para enquadramento",
+          "to": "4"
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Verificar enquadramento e competência municipal",
+      "role": "analyst",
+      "status": "screening",
+      "actions": [
+        {
+          "id": "municipal",
+          "label": "Registrar enquadramento municipal demonstrativo",
+          "to": "5"
+        },
+        {
+          "id": "external",
+          "label": "Registrar encaminhamento ao INEMA ou IBAMA",
+          "to": "4a"
+        }
+      ]
+    },
+    {
+      "id": "4a",
+      "title": "Encaminhar ao órgão competente, fora do município",
+      "role": "protocol",
+      "status": "screening",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Comunicar encaminhamento e finalizar roteiro municipal",
+          "to": "external_end"
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "title": "Confirmar enquadramento municipal e proceder ao protocolo",
+      "role": "analyst",
+      "status": "screening",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Confirmar enquadramento para definição do processo",
+          "to": "6"
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "title": "Definir processo, documentação e estudo ambiental necessários",
+      "role": "analyst",
+      "status": "screening",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Encaminhar checklist ao administrativo",
+          "to": "7"
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "title": "Informar documentos e estudo ambiental ao empreendedor",
+      "role": "protocol",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Comunicar checklist ao requerente",
+          "to": "8"
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "title": "Providenciar documentação e estudo ambiental",
+      "role": "applicant",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Enviar documentação para recebimento",
+          "to": "9"
+        }
+      ]
+    },
+    {
+      "id": "9",
+      "title": "Receber e protocolar documentação e encaminhar ao técnico",
+      "role": "protocol",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Encaminhar documentos recebidos ao técnico",
+          "to": "10"
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "title": "Verificar documentação e estudo ambiental",
+      "role": "analyst",
+      "status": "analysis",
+      "actions": [
+        {
+          "id": "adequate",
+          "label": "Documentação adequada",
+          "to": "11"
+        },
+        {
+          "id": "inadequate",
+          "label": "Documentação inadequada",
+          "to": "10a"
+        }
+      ]
+    },
+    {
+      "id": "10a",
+      "title": "Registrar documentação inadequada e pendências",
+      "role": "analyst",
+      "status": "analysis",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Devolver pendências ao administrativo",
+          "to": "10b"
+        }
+      ]
+    },
+    {
+      "id": "10b",
+      "title": "Devolver ao requerente por comunicação administrativa",
+      "role": "protocol",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Comunicar pendências documentais",
+          "to": "10c"
+        }
+      ]
+    },
+    {
+      "id": "10c",
+      "title": "Enviar documentação pendente",
+      "role": "applicant",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Reenviar documentos ao administrativo",
+          "to": "9"
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "title": "Registrar documentação adequada",
+      "role": "analyst",
+      "status": "analysis",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Encaminhar para taxa demonstrativa",
+          "to": "12"
+        }
+      ]
+    },
+    {
+      "id": "12",
+      "title": "Gerar referência demonstrativa para pagamento da taxa",
+      "role": "protocol",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Registrar cobrança fictícia",
+          "to": "13"
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "title": "Pagar taxas estipuladas — simulação",
+      "role": "applicant",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Enviar comprovante fictício",
+          "to": "14"
+        }
+      ]
+    },
+    {
+      "id": "14",
+      "title": "Verificar e comunicar pagamento ao departamento técnico",
+      "role": "protocol",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Conferir comprovante e comunicar ao técnico",
+          "to": "15a"
+        }
+      ]
+    },
+    {
+      "id": "15a",
+      "title": "Analisar estudo e elaborar plano de vistoria técnica",
+      "role": "analyst",
+      "status": "analysis",
+      "actions": [
+        {
+          "id": "adequate",
+          "label": "Estudo adequado",
+          "to": "16"
+        },
+        {
+          "id": "inadequate",
+          "label": "Solicitar complementação do estudo",
+          "to": "15_admin"
+        }
+      ]
+    },
+    {
+      "id": "15_admin",
+      "number": "15a · comunicação",
+      "title": "Comunicar pedido técnico de complementação do estudo",
+      "role": "protocol",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Comunicar revisão ao requerente",
+          "to": "15b"
+        }
+      ]
+    },
+    {
+      "id": "15b",
+      "title": "Revisar estudo conforme solicitação técnica",
+      "role": "applicant",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Enviar estudo revisado ao administrativo",
+          "to": "15_receipt"
+        }
+      ]
+    },
+    {
+      "id": "15_receipt",
+      "number": "15b · recebimento",
+      "title": "Receber estudo revisado e encaminhar ao técnico",
+      "role": "protocol",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Encaminhar revisão recebida",
+          "to": "15a"
+        }
+      ]
+    },
+    {
+      "id": "16",
+      "title": "Dar continuidade com estudo adequado",
+      "role": "analyst",
+      "status": "analysis",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Prosseguir para vistoria técnica",
+          "to": "17"
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "title": "Proceder à vistoria técnica",
+      "role": "analyst",
+      "status": "analysis",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Registrar relatório de vistoria",
+          "to": "18"
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "title": "Elaborar parecer final",
+      "role": "analyst",
+      "status": "analysis",
+      "actions": [
+        {
+          "id": "favorable",
+          "label": "Encaminhar parecer favorável",
+          "to": "20"
+        },
+        {
+          "id": "unfavorable",
+          "label": "Encaminhar parecer desfavorável",
+          "to": "19"
+        }
+      ]
+    },
+    {
+      "id": "19",
+      "title": "Parecer desfavorável: reabrir ou arquivar processo",
+      "role": "protocol",
+      "status": "decision",
+      "actions": [
+        {
+          "id": "reopen",
+          "label": "Reabrir para análise técnica",
+          "to": "15a"
+        },
+        {
+          "id": "archive",
+          "label": "Arquivar demonstração com justificativa",
+          "to": "refused_end"
+        }
+      ]
+    },
+    {
+      "id": "20",
+      "title": "Registrar parecer favorável",
+      "role": "analyst",
+      "status": "decision",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Encaminhar ato demonstrativo ao administrativo",
+          "to": "21"
+        }
+      ]
+    },
+    {
+      "id": "21",
+      "title": "Conceder ato administrativo autorizativo — somente modelo",
+      "role": "protocol",
+      "status": "decision",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Registrar modelo e iniciar acompanhamento",
+          "to": "22"
+        }
+      ]
+    },
+    {
+      "id": "22",
+      "title": "Proceder ao acompanhamento das condicionantes",
+      "role": "analyst",
+      "status": "analysis",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Solicitar relatório periódico pelo administrativo",
+          "to": "22_admin"
+        }
+      ]
+    },
+    {
+      "id": "22_admin",
+      "number": "22 · comunicação",
+      "title": "Comunicar acompanhamento e solicitar relatório periódico",
+      "role": "protocol",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Comunicar solicitação de relatório",
+          "to": "23"
+        }
+      ]
+    },
+    {
+      "id": "23",
+      "title": "Elaborar relatório periódico de atendimento às condicionantes",
+      "role": "applicant",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Enviar relatório ao administrativo",
+          "to": "23_receipt"
+        }
+      ]
+    },
+    {
+      "id": "23_receipt",
+      "number": "23 · recebimento",
+      "title": "Receber relatório periódico e encaminhar ao técnico",
+      "role": "protocol",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Encaminhar relatório recebido",
+          "to": "24"
+        }
+      ]
+    },
+    {
+      "id": "24",
+      "title": "Realizar vistorias de acompanhamento",
+      "role": "analyst",
+      "status": "analysis",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Concluir vistoria de acompanhamento",
+          "to": "25"
+        }
+      ]
+    },
+    {
+      "id": "25",
+      "title": "Solicitar renovação da licença ou autorização ambiental",
+      "role": "applicant",
+      "status": "requirements",
+      "actions": [
+        {
+          "id": "complete",
+          "label": "Concluir acompanhamento e preparar renovação vinculada",
+          "to": "renewal_ready"
+        }
+      ]
+    },
+    {
+      "id": "external_end",
+      "number": "4a · fim",
+      "title": "Encaminhamento externo comunicado",
+      "role": "protocol",
+      "status": "closed",
+      "actions": []
+    },
+    {
+      "id": "refused_end",
+      "number": "19 · fim",
+      "title": "Processo arquivado na demonstração",
+      "role": "protocol",
+      "status": "closed",
+      "actions": []
+    },
+    {
+      "id": "renewal_ready",
+      "number": "25 · fim",
+      "title": "Roteiro concluído; renovação vinculada disponível",
+      "role": "applicant",
+      "status": "closed",
+      "actions": []
+    }
+  ]
+}

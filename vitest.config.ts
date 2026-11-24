@@ -8,6 +8,9 @@ export default defineConfig({
     env: {
       SISLAM_DEMO: '1',
       SISLAM_TEST: '1',
+      VERCEL: '',
+      BLOB_READ_WRITE_TOKEN: '',
+      BLOB_STORE_ID: '',
       TEST_MEMORY: '1',
       DATABASE_URL: '',
       S3_ENDPOINT: '',

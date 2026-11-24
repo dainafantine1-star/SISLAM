@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { MunicipalWorkflow } from './MunicipalWorkflow';
 import {
   Plus,
   FolderOpen,
@@ -55,11 +56,12 @@ export function ProcessList({ user, mode }: { user: Entity; mode: string }) {
     registry = useApi('registry'),
     [search, setSearch] = useState(''),
     [status, setStatus] = useState(''),
+    [client, setClient] = useState(''),
     [creating, setCreating] = useState(false),
     params = useSearchParams();
   useEffect(() => {
-    setSearch(params.get('q') || '');
-    if (params.get('novo') === '1') setCreating(true);
+    setSearch(params?.get('q') || '');
+    if (params?.get('novo') === '1') setCreating(true);
   }, [params]);
   const list = (data.data || [])
     .filter(
@@ -70,6 +72,7 @@ export function ProcessList({ user, mode }: { user: Entity; mode: string }) {
     .filter(
       (c) =>
         (!status || c.status === status) &&
+        (!client || c.organization_name === client) &&
         `${c.protocol || ''} ${c.title} ${c.establishment_name}`
           .toLowerCase()
           .includes(search.toLowerCase()),
@@ -136,6 +139,23 @@ export function ProcessList({ user, mode }: { user: Entity; mode: string }) {
               ))}
             </select>
           </label>
+          {hasRole(user, 'applicant') && (
+            <label className="inline-filter">
+              <span className="sr-only">Filtrar cliente</span>
+              <select
+                aria-label="Filtrar cliente"
+                value={client}
+                onChange={(event) => setClient(event.target.value)}
+              >
+                <option value="">Todos os clientes</option>
+                {registry.data?.organizations.map((organization: Entity) => (
+                  <option key={organization.id} value={organization.name}>
+                    {organization.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
         <ErrorBox error={data.error} />
         {!data.data && !data.error ? (
@@ -288,8 +308,9 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
       'Documento anexado com nova versão e recibo.',
     );
   }
-  const transitions =
-    c.status === 'filed' && hasRole(user, 'protocol')
+  const transitions = c.workflow_step
+    ? []
+    : c.status === 'filed' && hasRole(user, 'protocol')
       ? ['screening']
       : c.status === 'screening' && hasRole(user, 'protocol', 'analyst')
         ? ['requirements', 'analysis']
@@ -318,17 +339,20 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
           {message}
         </div>
       )}
-      <div className="workflow-strip">
-        {stages.map((s, i) => (
-          <div
-            key={s}
-            className={c.status === s ? 'current' : i < stages.indexOf(c.status) ? 'done' : ''}
-          >
-            <span>{i < stages.indexOf(c.status) ? <CheckCircle2 size={15} /> : i + 1}</span>
-            <small>{STATUS[s]}</small>
-          </div>
-        ))}
-      </div>
+      <MunicipalWorkflow process={c} user={user} selectTab={setTab} />
+      {!c.workflow_step && (
+        <div className="workflow-strip">
+          {stages.map((s, i) => (
+            <div
+              key={s}
+              className={c.status === s ? 'current' : i < stages.indexOf(c.status) ? 'done' : ''}
+            >
+              <span>{i < stages.indexOf(c.status) ? <CheckCircle2 size={15} /> : i + 1}</span>
+              <small>{STATUS[s]}</small>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="case-tabs" role="tablist" aria-label="Seções do processo">
         {[
           ['overview', 'Visão geral'],
@@ -449,12 +473,14 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
             <aside className="stack">
               <section className="card padded">
                 <h2>Próximas ações</h2>
-                {c.status === 'draft' && hasRole(user, 'applicant', 'protocol') && (
-                  <Button className="full" onClick={() => setModal('file')}>
-                    <FolderOpen size={17} />
-                    Protocolar requerimento
-                  </Button>
-                )}
+                {!c.workflow_step &&
+                  c.status === 'draft' &&
+                  hasRole(user, 'applicant', 'protocol') && (
+                    <Button className="full" onClick={() => setModal('file')}>
+                      <FolderOpen size={17} />
+                      Protocolar requerimento
+                    </Button>
+                  )}
                 {transitions.map((s) => (
                   <Button
                     variant="secondary"
@@ -488,41 +514,44 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
                     Minuta de exigência
                   </Button>
                 )}
-                {hasRole(user, 'analyst') && (
-                  <Button
-                    variant="secondary"
-                    className="full"
-                    onClick={() => setModal('classification')}
-                  >
-                    Revisar enquadramento
-                  </Button>
-                )}
+                {hasRole(user, 'analyst') &&
+                  (!c.workflow_step || ['4', '5', '6'].includes(c.workflow_step)) && (
+                    <Button
+                      variant="secondary"
+                      className="full"
+                      onClick={() => setModal('classification')}
+                    >
+                      Revisar enquadramento
+                    </Button>
+                  )}
                 {hasRole(user, 'protocol', 'authority') && (
                   <Button variant="ghost" className="full" onClick={() => setModal('assign')}>
                     <UserRound size={17} />
                     Atribuir técnico
                   </Button>
                 )}
-                {c.licenses.length > 0 && hasRole(user, 'applicant', 'protocol') && (
-                  <Button
-                    variant="ghost"
-                    className="full"
-                    disabled={busy}
-                    onClick={() =>
-                      run(async () => {
-                        const result = await api('cases', {
-                          establishmentId: e.id,
-                          title: 'Renovação — ' + c.title,
-                          parentId: c.id,
-                        });
-                        window.location.assign('/processos/' + result.id);
-                      })
-                    }
-                  >
-                    <RefreshCw size={17} />
-                    Iniciar renovação
-                  </Button>
-                )}
+                {c.licenses.length > 0 &&
+                  (!c.workflow_step || c.workflow_step === 'renewal_ready') &&
+                  hasRole(user, 'applicant', 'protocol') && (
+                    <Button
+                      variant="ghost"
+                      className="full"
+                      disabled={busy}
+                      onClick={() =>
+                        run(async () => {
+                          const result = await api('cases', {
+                            establishmentId: e.id,
+                            title: 'Renovação — ' + c.title,
+                            parentId: c.id,
+                          });
+                          window.location.assign('/processos/' + result.id);
+                        })
+                      }
+                    >
+                      <RefreshCw size={17} />
+                      Iniciar renovação
+                    </Button>
+                  )}
               </section>
               <section className="card padded">
                 <h2>Completude documental</h2>
@@ -593,48 +622,67 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
                         <Download size={15} />
                         Baixar
                       </a>
-                      {hasRole(user, 'protocol') && item.document.status === 'sent' && (
-                        <Button
-                          variant="secondary"
-                          disabled={busy}
-                          onClick={() =>
-                            run(() => api('documents/' + item.document.id + '/receive', {}))
-                          }
-                        >
-                          Registrar recebimento
-                        </Button>
-                      )}
-                      {hasRole(user, 'analyst') && item.document.status === 'received' && (
-                        <Button
-                          onClick={() => {
-                            setTo(item.document.id);
-                            setModal('review');
-                          }}
-                        >
-                          Analisar documento
-                        </Button>
-                      )}
+                      {hasRole(user, 'protocol') &&
+                        (!c.workflow_step ||
+                          [
+                            '9',
+                            '14',
+                            '15_receipt',
+                            '23_receipt',
+                            '22',
+                            '24',
+                            '25',
+                            'renewal_ready',
+                          ].includes(c.workflow_step)) &&
+                        item.document.status === 'sent' && (
+                          <Button
+                            variant="secondary"
+                            disabled={busy}
+                            onClick={() =>
+                              run(() => api('documents/' + item.document.id + '/receive', {}))
+                            }
+                          >
+                            Registrar recebimento
+                          </Button>
+                        )}
+                      {hasRole(user, 'analyst') &&
+                        (!c.workflow_step ||
+                          ['10', '15a', '22', '24', '25', 'renewal_ready'].includes(
+                            c.workflow_step,
+                          )) &&
+                        item.document.status === 'received' && (
+                          <Button
+                            onClick={() => {
+                              setTo(item.document.id);
+                              setModal('review');
+                            }}
+                          >
+                            Analisar documento
+                          </Button>
+                        )}
                     </>
                   )}
-                  {hasRole(user, 'applicant', 'protocol') && c.status !== 'closed' && (
-                    <label
-                      className={`button ${item.document ? 'secondary' : 'primary'} file-button`}
-                    >
-                      <Upload size={16} />
-                      {item.document ? 'Enviar nova versão' : 'Anexar documento'}
-                      <input
-                        type="file"
-                        accept="application/pdf,image/png,image/jpeg"
-                        disabled={busy}
-                        onChange={async (ev) => {
-                          const input = ev.currentTarget,
-                            file = input.files?.[0];
-                          if (file) await upload(item.key, file);
-                          input.value = '';
-                        }}
-                      />
-                    </label>
-                  )}
+                  {hasRole(user, 'applicant', 'protocol') &&
+                    (!c.workflow_step || ['8', '10c', '15b'].includes(c.workflow_step)) &&
+                    c.status !== 'closed' && (
+                      <label
+                        className={`button ${item.document ? 'secondary' : 'primary'} file-button`}
+                      >
+                        <Upload size={16} />
+                        {item.document ? 'Enviar nova versão' : 'Anexar documento'}
+                        <input
+                          type="file"
+                          accept="application/pdf,image/png,image/jpeg"
+                          disabled={busy}
+                          onChange={async (ev) => {
+                            const input = ev.currentTarget,
+                              file = input.files?.[0];
+                            if (file) await upload(item.key, file);
+                            input.value = '';
+                          }}
+                        />
+                      </label>
+                    )}
                 </div>
               </section>
             ))}
@@ -668,6 +716,19 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
                         <a className="table-link" href={'/api/documents/' + d.id + '/download'}>
                           Baixar
                         </a>
+                        {d.requirement_key.startsWith('extra_') && <Badge status={d.status} />}
+                        {d.requirement_key.startsWith('extra_') &&
+                          d.status === 'sent' &&
+                          hasRole(user, 'protocol') &&
+                          (!c.workflow_step ||
+                            ['9', '14', '15_receipt', '23_receipt'].includes(c.workflow_step)) && (
+                            <Button
+                              variant="secondary"
+                              onClick={() => run(() => api(`documents/${d.id}/receive`, {}))}
+                            >
+                              Registrar recebimento
+                            </Button>
+                          )}
                       </td>
                     </tr>
                   ))}
@@ -678,7 +739,7 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
         )}
         {tab === 'analysis' && (
           <div className="stack">
-            {hasRole(user, 'analyst') && (
+            {hasRole(user, 'analyst') && (!c.workflow_step || c.workflow_step === '18') && (
               <section className="card padded">
                 <div className="card-heading plain">
                   <div>
@@ -705,6 +766,7 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
                       conclusion: field(f, 'conclusion'),
                       text: field(f, 'text'),
                       reviewed: f.has('reviewed'),
+                      ...(c.opinions.length ? { reason: field(f, 'reason') } : {}),
                     });
                     changed();
                   }}
@@ -712,6 +774,9 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
                   <Select name="conclusion" label="Conclusão">
                     <option value="complement">Solicitar complementação</option>
                     <option value="favorable">Favorável</option>
+                    <option value="favorable_reservations">
+                      Favorável com ressalvas e condicionantes
+                    </option>
                     <option value="unfavorable">Desfavorável</option>
                   </Select>
                   <Area
@@ -724,6 +789,15 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
                     defaultValue={draft}
                     rows={12}
                   />
+                  {c.opinions.length > 0 && (
+                    <Area
+                      name="reason"
+                      label="Justificativa da revisão do parecer"
+                      required
+                      minLength={20}
+                      maxLength={2000}
+                    />
+                  )}
                   <Check
                     name="reviewed"
                     label="Revisei o conteúdo e assumo a responsabilidade técnica desta versão"
@@ -754,45 +828,53 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
         )}
         {tab === 'license' && (
           <div className="stack">
-            {hasRole(user, 'authority') && c.licenses.length === 0 && (
-              <section className="card padded">
-                <h2>Decisão da autoridade · demonstração</h2>
-                <p className="muted">
-                  A emissão exige parecer favorável revisado e documentação sem pendências
-                  impeditivas.
-                </p>
-                <Button variant="secondary" onClick={() => setModal('refuse')}>
-                  Registrar indeferimento demonstrativo
-                </Button>
-                <ActionForm
-                  label="Aprovar licença-modelo"
-                  submit={async (f) => {
-                    await api('cases/' + c.id + '/license', {
-                      validUntil: field(f, 'validUntil'),
-                      text: field(f, 'text'),
-                      confirmed: f.has('confirmed'),
-                    });
-                    changed();
-                  }}
-                >
-                  <Field name="validUntil" label="Validade demonstrativa" type="date" required />
-                  <Area
-                    name="text"
-                    label="Texto da licença-modelo"
-                    required
-                    minLength={30}
-                    maxLength={30000}
-                    rows={7}
-                    defaultValue={`LICENÇA-MODELO — SEM VALIDADE JURÍDICA\nProcesso ${c.protocol}.\nAutorização fictícia destinada exclusivamente à validação do fluxo de demonstração do SISLAM.`}
-                  />
-                  <Check
-                    name="confirmed"
-                    label="Confirmo a decisão demonstrativa. Este modelo não é um ato oficial."
-                    required
-                  />
-                </ActionForm>
-              </section>
-            )}
+            {(hasRole(user, 'authority') ||
+              (hasRole(user, 'protocol') && c.workflow_step === '21')) &&
+              c.licenses.length === 0 && (
+                <section className="card padded">
+                  <h2>
+                    {c.workflow_step
+                      ? 'Ato autorizativo · modelo demonstrativo'
+                      : 'Decisão da autoridade · demonstração'}
+                  </h2>
+                  <p className="muted">
+                    A emissão exige parecer favorável revisado e documentação sem pendências
+                    impeditivas.
+                  </p>
+                  {!c.workflow_step && (
+                    <Button variant="secondary" onClick={() => setModal('refuse')}>
+                      Registrar indeferimento demonstrativo
+                    </Button>
+                  )}
+                  <ActionForm
+                    label="Aprovar licença-modelo"
+                    submit={async (f) => {
+                      await api('cases/' + c.id + '/license', {
+                        validUntil: field(f, 'validUntil'),
+                        text: field(f, 'text'),
+                        confirmed: f.has('confirmed'),
+                      });
+                      changed();
+                    }}
+                  >
+                    <Field name="validUntil" label="Validade demonstrativa" type="date" required />
+                    <Area
+                      name="text"
+                      label="Texto da licença-modelo"
+                      required
+                      minLength={30}
+                      maxLength={30000}
+                      rows={7}
+                      defaultValue={`LICENÇA-MODELO — SEM VALIDADE JURÍDICA\nProcesso ${c.protocol}.\nAutorização fictícia destinada exclusivamente à validação do fluxo de demonstração do SISLAM.`}
+                    />
+                    <Check
+                      name="confirmed"
+                      label="Confirmo a decisão demonstrativa. Este modelo não é um ato oficial."
+                      required
+                    />
+                  </ActionForm>
+                </section>
+              )}
             {c.licenses.map((l: Entity) => (
               <section key={l.id} className="card padded">
                 <div className="card-heading plain">
@@ -827,7 +909,8 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
                       </Button>
                     )
                   )}
-                  {hasRole(user, 'authority') && (
+                  {(hasRole(user, 'authority') ||
+                    (hasRole(user, 'analyst') && ['21', '22'].includes(c.workflow_step))) && (
                     <Button
                       variant="secondary"
                       onClick={() => {

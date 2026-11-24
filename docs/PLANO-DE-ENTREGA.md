@@ -1,5 +1,7 @@
 # Plano de continuidade do SISLAM
 
+Atualização local: [fluxograma municipal com três perfis e 25 etapas](FLUXOGRAMA-MUNICIPAL.md). Taxas, pagamentos e atos autorizativos continuam exclusivamente demonstrativos. O PDF orienta a sequência; não substitui as validações normativas pendentes.
+
 | Etapa do escopo | Situação nesta entrega | Próxima validação |
 |---|---|---|
 | Descoberta normativa | Dois textos de escopo preservados; fontes normativas não homologadas | Receber Excel, PDFs e gabaritos |
@@ -9,6 +11,8 @@
 | SaaS | Estrutura municipal, isolamento e suporte temporário | Provisionamento, contratos, cobrança, observabilidade e onboarding repetível |
 
 ## Dados que não devem ser presumidos
+
+A demonstração também pode ser hospedada na Vercel com PostgreSQL e armazenamento privado, conforme [DEMONSTRACAO-ONLINE.md](DEMONSTRACAO-ONLINE.md). A hospedagem não altera a situação das etapas acima nem habilita atos oficiais.
 
 - Enquadramento e competência municipal por atividade/localização.
 - Faixas ambientais, documentos obrigatórios e hipóteses condicionais.

@@ -4,17 +4,17 @@ import { Leaf, ShieldCheck, FolderCheck, Layers, Eye, EyeOff } from 'lucide-reac
 import { api, field, ROLE_LABELS } from '@/lib/api';
 import { ActionForm, Field, Select, Button, ErrorBox } from '@/components/ui';
 const profiles = [
-  ['admin', 'municipal_admin'],
   ['requerente', 'applicant'],
   ['protocolo', 'protocol'],
   ['tecnico', 'analyst'],
+  ['admin', 'municipal_admin'],
   ['autoridade', 'authority'],
   ['fiscal', 'inspector'],
   ['ouvidoria', 'ombudsman'],
   ['fornecedor', 'supplier'],
 ];
 export default function Login() {
-  const [email, setEmail] = useState('admin@demo.sislam.test'),
+  const [email, setEmail] = useState('requerente@demo.sislam.test'),
     [show, setShow] = useState(false),
     [mfa, setMfa] = useState(false),
     [configured, setConfigured] = useState(false),
@@ -22,13 +22,12 @@ export default function Login() {
   return (
     <main className="login-page">
       <section className="login-art">
-        <a className="brand light" href="/login">
-          <span className="brand-mark">
-            <Leaf size={25} />
-          </span>
-          <span>
-            SISLAM<small>GESTÃO AMBIENTAL</small>
-          </span>
+        <a className="brand logo-brand" href="/login" aria-label="SISLAM Brasil">
+          <img
+            className="sislam-logo"
+            src="/sislam-brasil.jpeg"
+            alt="SISLAM Brasil — Sistema Inteligente de Licenciamento Ambiental"
+          />
         </a>
         <div className="login-message">
           <span className="eyebrow">MUNICÍPIOS MAIS SUSTENTÁVEIS</span>
@@ -76,6 +75,25 @@ export default function Login() {
           </p>
           {!mfa ? (
             <>
+              <div className="demo-profiles" aria-label="Três acessos da demonstração">
+                {profiles.slice(0, 3).map(([name, role]) => (
+                  <button
+                    type="button"
+                    key={name}
+                    aria-pressed={email === name + '@demo.sislam.test'}
+                    onClick={() => setEmail(name + '@demo.sislam.test')}
+                  >
+                    <strong>{ROLE_LABELS[role]}</strong>
+                    <small>
+                      {role === 'applicant'
+                        ? 'Empresas, clientes e solicitações'
+                        : role === 'protocol'
+                          ? 'Recepção, protocolo e comunicação'
+                          : 'Enquadramento, estudos e pareceres'}
+                    </small>
+                  </button>
+                ))}
+              </div>
               <Select
                 label="Perfil da demonstração"
                 onChange={(e) => setEmail(e.target.value)}
@@ -87,6 +105,9 @@ export default function Login() {
                   </option>
                 ))}
               </Select>
+              <p className="login-access-hint">
+                Conta: <strong>{email}</strong>. Use a senha disponível em ACESSO-LOCAL.txt.
+              </p>
               <ActionForm
                 label="Entrar no sistema"
                 submit={async (f) => {
@@ -124,8 +145,13 @@ export default function Login() {
                 </div>
               </ActionForm>
               <p className="login-help">
-                A senha dos perfis fictícios está no arquivo <strong>ACESSO-LOCAL.txt</strong>,
-                dentro da pasta do sistema.
+                A senha dos perfis fictícios está no arquivo{' '}
+                <strong>
+                  {process.env.NEXT_PUBLIC_HOSTED_DEMO === '1'
+                    ? 'ACESSO-ONLINE.txt'
+                    : 'ACESSO-LOCAL.txt'}
+                </strong>
+                , dentro da pasta do sistema.
               </p>
             </>
           ) : (

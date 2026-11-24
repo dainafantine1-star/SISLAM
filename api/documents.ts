@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { put as putBlob, get as getBlob } from '@vercel/blob';
 import { z } from 'zod';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -38,6 +39,7 @@ import {
   readRoles,
 } from './core';
 import { caseRow } from './cases';
+import { requireWorkflowStep } from './municipal-workflow';
 @Injectable()
 export class FileStore {
   private client?: S3Client;
@@ -64,7 +66,16 @@ export class FileStore {
         }),
         { abortSignal: AbortSignal.timeout(15000) },
       );
+    } else if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
+      await putBlob(key, encrypted, {
+        access: 'private',
+        addRandomSuffix: false,
+        allowOverwrite: false,
+        contentType: 'application/octet-stream',
+      });
     } else {
+      if (process.env.VERCEL)
+        throw new BadRequestException('Armazenamento persistente de anexos não configurado');
       if (!DEMO()) throw new BadRequestException('Armazenamento operacional não configurado');
       const directory = path.join(dataDirectory(), 'files');
       await fs.mkdir(directory, { recursive: true });
@@ -81,7 +92,16 @@ export class FileStore {
         { abortSignal: AbortSignal.timeout(15000) },
       );
       data = Buffer.from(await result.Body!.transformToByteArray());
-    } else data = await fs.readFile(path.join(dataDirectory(), 'files', key));
+    } else if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
+      const result = await getBlob(key, { access: 'private' });
+      if (!result || result.statusCode !== 200)
+        throw new NotFoundException('Arquivo não encontrado');
+      data = Buffer.from(await new Response(result.stream).arrayBuffer());
+    } else {
+      if (process.env.VERCEL)
+        throw new BadRequestException('Armazenamento persistente de anexos não configurado');
+      data = await fs.readFile(path.join(dataDirectory(), 'files', key));
+    }
     return decrypt(data);
   }
   async scan(data: Buffer): Promise<'clean' | 'quarantine' | 'demo_unscanned'> {
@@ -104,14 +124,16 @@ export class FileStore {
     }
   }
 }
+const uploadLimitMB = process.env.VERCEL ? 3 : 10;
+const uploadLimit = uploadLimitMB * 1024 * 1024;
 export function validateFile(file: {
   buffer: Buffer;
   originalname: string;
   mimetype: string;
   size: number;
 }) {
-  if (!file || !file.buffer?.length || file.buffer.length > 10485760)
-    throw new BadRequestException('Envie um arquivo de até 10 MB');
+  if (!file || !file.buffer?.length || file.buffer.length > uploadLimit)
+    throw new BadRequestException(`Envie um arquivo de até ${uploadLimitMB} MB`);
   const data = file.buffer;
   const detected =
     data.subarray(0, 5).toString() === '%PDF-'
@@ -146,7 +168,13 @@ export class DocumentsService {
       .parse(requirementKey);
     return this.db.tenant(actor, async (q) => {
       const row = await caseRow(q, caseId, true);
-      if (row.status === 'closed' && !requirementKey.startsWith('evidence_'))
+      if (!requirementKey.startsWith('evidence_'))
+        requireWorkflowStep(row, ['8', '10c', '13', '15b', '23']);
+      if (
+        row.status === 'closed' &&
+        !requirementKey.startsWith('evidence_') &&
+        !(row.workflow_step === '23' && requirementKey === 'extra_relatorio')
+      )
         throw new BadRequestException('O processo está encerrado');
       const configured = (row.classification?.requirements || []).some(
         (r: any) => r.key === requirementKey,
@@ -201,9 +229,15 @@ export class DocumentsService {
         },
         row.id,
       );
-      await q.query('UPDATE cases SET updated_at=now(),revision=revision+1 WHERE id=$1', [row.id]);
+      const updatedCase = (
+        await q.query(
+          'UPDATE cases SET updated_at=now(),revision=revision+1 WHERE id=$1 RETURNING revision',
+          [row.id],
+        )
+      ).rows[0];
       return {
         ...saved,
+        caseRevision: updatedCase.revision,
         receipt: `REC-${saved.id}`,
         notice:
           scan === 'demo_unscanned'
@@ -221,6 +255,17 @@ export class DocumentsService {
         await q.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [id(documentId)])
       ).rows[0];
       if (!row) throw new NotFoundException('Documento não encontrado');
+      const process = await caseRow(q, row.case_id, true);
+      requireWorkflowStep(process, [
+        '9',
+        '14',
+        '15_receipt',
+        '23_receipt',
+        '22',
+        '24',
+        '25',
+        'renewal_ready',
+      ]);
       if (row.status !== 'sent')
         throw new BadRequestException('Este documento já recebeu conferência administrativa');
       if (row.scan_status === 'quarantine')
@@ -254,6 +299,8 @@ export class DocumentsService {
         await q.query('SELECT * FROM documents WHERE id=$1 FOR UPDATE', [id(documentId)])
       ).rows[0];
       if (!row) throw new NotFoundException('Documento não encontrado');
+      const process = await caseRow(q, row.case_id, true);
+      requireWorkflowStep(process, ['10', '15a', '22', '24', '25', 'renewal_ready']);
       if (row.status !== 'received')
         throw new BadRequestException(
           'O recebimento administrativo deve preceder a análise técnica',
@@ -300,13 +347,15 @@ export class DocumentsController {
       async (q) =>
         (
           await q.query(
-            'SELECT d.id,d.case_id,d.requirement_key,d.version,d.filename,d.media_type,d.bytes,d.sha256,d.scan_status,d.status,d.received_at,d.reviewed_at,d.review_note,d.created_at,c.protocol FROM documents d JOIN cases c ON c.id=d.case_id ORDER BY d.created_at DESC LIMIT 500',
+            'SELECT d.id,d.case_id,d.requirement_key,d.version,d.filename,d.media_type,d.bytes,d.sha256,d.scan_status,d.status,d.received_at,d.reviewed_at,d.review_note,d.created_at,c.protocol,c.workflow_step FROM documents d JOIN cases c ON c.id=d.case_id ORDER BY d.created_at DESC LIMIT 500',
           )
         ).rows,
     );
   }
   @Post('cases/:id')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10485760, files: 1, fields: 1 } }))
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: uploadLimit, files: 1, fields: 1 } }),
+  )
   upload(
     @Req() r: AuthRequest,
     @Param('id') id: string,

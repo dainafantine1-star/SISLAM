@@ -16,11 +16,12 @@ import {
   canonical,
   digest,
 } from '../api/core';
-import { seed } from '../api/setup';
+import { seed, resumeDemoSetup } from '../api/setup';
 import { classify, validateRule } from '../api/registry-rules';
 import { dueDate } from '../api/monitoring';
 import { capture, encodeBackup, decodeBackup, verifyBackup } from '../api/backup';
 import { FileStore } from '../api/documents';
+import { municipalWorkflow } from '../api/municipal-workflow';
 let app: Awaited<ReturnType<typeof createApplication>>,
   db: Database,
   base: string,
@@ -39,11 +40,14 @@ async function request(
   if (cookies[role]) headers.Cookie = cookies[role];
   if (body !== undefined && !(body instanceof FormData))
     headers['Content-Type'] = 'application/json';
-  return fetch(base + '/api/' + route, {
+  const response = await fetch(base + '/api/' + route, {
     method,
     headers,
     body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
   });
+  // Status-only assertions must still drain the HTTP body before the server
+  // closes its socket; retain the real status, headers and bytes for assertions.
+  return new Response(await response.arrayBuffer(), response);
 }
 async function json(method: string, route: string, body?: unknown, role = 'admin') {
   const response = await request(method, route, body, role),
@@ -78,6 +82,392 @@ afterAll(async () => {
   await db?.close();
 });
 describe('SISLAM — isolamento e fluxo verificável', () => {
+  it('mantém uma versão do roteiro sem etapas duplicadas ou destinos inexistentes', () => {
+    const ids = municipalWorkflow.steps.map((step) => step.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const step of municipalWorkflow.steps)
+      for (const action of step.actions) expect(ids).toContain(action.to);
+    for (const id of [
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+      '10',
+      '10a',
+      '10b',
+      '10c',
+      '11',
+      '12',
+      '13',
+      '14',
+      '15a',
+      '15b',
+      '16',
+      '17',
+      '18',
+      '19',
+      '20',
+      '21',
+      '22',
+      '23',
+      '24',
+      '25',
+    ])
+      expect(ids).toContain(id);
+  });
+  it('executa as 25 etapas com três perfis, retornos administrativos e bloqueio de saltos', async () => {
+    const organization = await json(
+      'POST',
+      'registry/organizations',
+      {
+        name: 'Cliente do roteiro municipal (fictício)',
+        registration: 'FLOW-25-TEST',
+        representative: 'Responsável fictício',
+        email: '',
+        phone: '',
+      },
+      'requerente',
+    );
+    const establishment = await json(
+      'POST',
+      'registry/establishments',
+      {
+        organizationId: organization.id,
+        name: 'Empreendimento do roteiro (fictício)',
+        activity: 'DEMO-MADEIRA',
+        address: 'Endereço inteiramente fictício',
+        latitude: null,
+        longitude: null,
+        capacity: 50,
+        area: 100,
+      },
+      'requerente',
+    );
+    const create = () =>
+      json(
+        'POST',
+        'cases',
+        { establishmentId: establishment.id, title: 'Fluxograma municipal completo demonstrativo' },
+        'requerente',
+      );
+    const c = await create(),
+      get = () => json('GET', `cases/${c.id}`);
+    const roles: Record<string, string> = {
+      applicant: 'requerente',
+      protocol: 'protocolo',
+      analyst: 'tecnico',
+    };
+    async function step(expected: string, action = 'complete', extra = {}) {
+      const current = await get();
+      expect(current.workflow_step).toBe(expected);
+      return json(
+        'POST',
+        `cases/${c.id}/workflow`,
+        {
+          step: expected,
+          action,
+          revision: current.revision,
+          note: 'Registro fictício suficientemente detalhado para validar esta etapa.',
+          ...extra,
+        },
+        roles[current.workflow.current.role],
+      );
+    }
+    async function upload(key: string) {
+      const form = new FormData();
+      form.set('requirementKey', key);
+      form.set('file', new Blob([new Uint8Array(pdf)], { type: 'application/pdf' }), `${key}.pdf`);
+      return json('POST', `documents/cases/${c.id}`, form, 'requerente');
+    }
+    async function receive() {
+      const current = await get();
+      for (const d of current.documents)
+        if (d.status === 'sent') await json('POST', `documents/${d.id}/receive`, {}, 'protocolo');
+    }
+    async function review() {
+      for (const d of (await get()).documents)
+        if (d.status === 'received')
+          await json(
+            'POST',
+            `documents/${d.id}/review`,
+            { status: 'accepted', note: 'Peça fictícia conferida na análise técnica' },
+            'tecnico',
+          );
+    }
+    expect(
+      (
+        await request(
+          'POST',
+          `cases/${c.id}/workflow`,
+          {
+            step: '1',
+            action: 'complete',
+            revision: c.revision,
+            note: 'Tentativa por perfil técnico sem permissão',
+          },
+          'tecnico',
+        )
+      ).status,
+    ).toBe(403);
+    await step('1');
+    expect((await get()).protocol).toBeNull();
+    await step('2');
+    const frozen = (await get()).rule_snapshot;
+    expect(frozen.version).toBe(1);
+    const duplicate = await create();
+    await json(
+      'POST',
+      `cases/${duplicate.id}/file`,
+      { revision: duplicate.revision, confirmed: true },
+      'requerente',
+    );
+    const dup = await json('GET', `cases/${duplicate.id}`);
+    expect(
+      (
+        await request(
+          'POST',
+          `cases/${duplicate.id}/workflow`,
+          {
+            step: '2',
+            action: 'complete',
+            revision: dup.revision,
+            note: 'Conferência fictícia para detectar duplicidade',
+          },
+          'protocolo',
+        )
+      ).status,
+    ).toBe(409);
+    expect(
+      (
+        await request(
+          'POST',
+          `cases/${c.id}/transition`,
+          {
+            to: 'analysis',
+            reason: 'Tentativa de saltar a etapa do roteiro',
+            revision: (await get()).revision,
+          },
+          'protocolo',
+        )
+      ).status,
+    ).toBe(400);
+    const stale = await get();
+    await step('3');
+    expect(
+      (
+        await request(
+          'POST',
+          `cases/${c.id}/workflow`,
+          {
+            step: '3',
+            action: 'complete',
+            revision: stale.revision,
+            note: 'Reenvio fictício de uma etapa já concluída',
+          },
+          'tecnico',
+        )
+      ).status,
+    ).toBe(409);
+    await step('4', 'municipal', {
+      reference: 'Referência inteiramente fictícia, sem norma homologada',
+    });
+    await step('5');
+    await step('6');
+    const applicantBefore = await json('GET', `cases/${c.id}`, undefined, 'requerente');
+    expect(applicantBefore.timeline.some((e: any) => e.payload.audience === 'internal')).toBe(
+      false,
+    );
+    await step('7');
+    const incomplete = await get();
+    expect(
+      (
+        await request(
+          'POST',
+          `cases/${c.id}/workflow`,
+          {
+            step: '8',
+            action: 'complete',
+            revision: incomplete.revision,
+            note: 'Tentativa de enviar documentação ainda incompleta',
+          },
+          'requerente',
+        )
+      ).status,
+    ).toBe(400);
+    for (const item of incomplete.checklist) await upload(item.key);
+    await step('8');
+    await receive();
+    await step('9');
+    // Rejected document follows 10a -> administrative 10b -> applicant 10c -> receipt 9.
+    const first = (await get()).documents[0];
+    await json(
+      'POST',
+      `documents/${first.id}/review`,
+      { status: 'rejected', note: 'Peça fictícia incompleta para testar devolução' },
+      'tecnico',
+    );
+    await step('10', 'inadequate');
+    await step('10a');
+    await step('10b');
+    const oldHash = first.sha256;
+    await upload(first.requirement_key);
+    await step('10c');
+    await receive();
+    await step('9');
+    await review();
+    expect((await get()).documents.find((d: any) => d.id === first.id).sha256).toBe(oldHash);
+    await step('10', 'adequate');
+    await step('11');
+    await step('12', 'complete', {
+      reference: 'Taxa exclusivamente simulada de teste',
+      amount: 10,
+    });
+    const paymentReceipt = await upload('extra_pagamento');
+    expect(paymentReceipt.caseRevision).toBe((await get()).revision);
+    await json('POST',`cases/${c.id}/workflow`,{
+      step:'13',action:'complete',revision:paymentReceipt.caseRevision,
+      note:'Comprovante fictício enviado e encaminhado com a revisão retornada pelo upload.',
+    },'requerente');
+    await receive();
+    await step('14');
+    await step('15a', 'inadequate');
+    await step('15_admin');
+    await upload('extra_estudo');
+    await step('15b');
+    await receive();
+    await step('15_receipt');
+    await step('15a', 'adequate');
+    await step('16');
+    await step('17');
+    await json(
+      'POST',
+      `cases/${c.id}/opinion`,
+      {
+        conclusion: 'favorable',
+        text: 'Parecer fictício favorável para demonstração completa do fluxo municipal.',
+        reviewed: true,
+      },
+      'tecnico',
+    );
+    expect(
+      (
+        await request(
+          'POST',
+          `cases/${c.id}/opinion`,
+          {
+            conclusion: 'favorable',
+            text: 'Tentativa fictícia de modificar parecer por requerente.',
+            reviewed: true,
+          },
+          'requerente',
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request(
+          'POST',
+          `cases/${c.id}/opinion`,
+          {
+            conclusion: 'favorable',
+            text: 'Nova versão fictícia de parecer sem justificativa suficiente.',
+            reviewed: true,
+          },
+          'tecnico',
+        )
+      ).status,
+    ).toBe(400);
+    await json(
+      'POST',
+      `cases/${c.id}/opinion`,
+      {
+        conclusion: 'favorable',
+        text: 'Parecer fictício favorável revisado com justificativa e versão preservada.',
+        reviewed: true,
+        reason: 'Ajuste fictício de redação sem alterar a proposta anterior.',
+      },
+      'tecnico',
+    );
+    await step('18', 'favorable');
+    await step('20');
+    const license = await json(
+      'POST',
+      `cases/${c.id}/license`,
+      {
+        validUntil: '2029-01-01',
+        text: 'Licença-modelo demonstrativa para verificar a sequência fornecida, sem validade jurídica.',
+        confirmed: true,
+      },
+      'protocolo',
+    );
+    expect(license.status).toBe('approved_demo');
+    await step('21');
+    await step('22');
+    await step('22_admin');
+    await upload('extra_relatorio');
+    await step('23');
+    await receive();
+    await step('23_receipt');
+    await step('24');
+    await step('25');
+    expect((await get()).workflow_step).toBe('renewal_ready');
+    expect((await get()).rule_snapshot).toEqual(frozen);
+    expect((await get()).opinions).toHaveLength(2);
+    const renewal = await json(
+      'POST',
+      'cases',
+      {
+        establishmentId: establishment.id,
+        title: 'Renovação demonstrativa vinculada ao processo',
+        parentId: c.id,
+      },
+      'requerente',
+    );
+    expect(renewal.parent_id).toBe(c.id);
+    expect(renewal.workflow_step).toBe('1');
+    const outsider = { ...data.actors.requerente, id: data.actors.admin.id };
+    expect(
+      await db.tenant(
+        outsider,
+        async (q) => (await q.query('SELECT id FROM cases WHERE id=$1', [c.id])).rows,
+      ),
+    ).toEqual([]);
+    const auditResult = await json('GET', 'admin/audit/verify');
+    expect(auditResult.valid).toBe(true);
+  });
+  it('permite assumir somente o perfil restrito e retoma exemplos sem duplicar originais ou auditoria', async () => {
+    const role = await db.system(
+      async (q) =>
+        (
+          await q.query(
+            "SELECT r.rolsuper,r.rolbypassrls,m.set_option,m.inherit_option FROM pg_roles r JOIN pg_auth_members m ON m.roleid=r.oid JOIN pg_roles u ON u.oid=m.member WHERE r.rolname='sislam_runtime' AND u.rolname=current_user",
+          )
+        ).rows[0],
+    );
+    expect(role).toMatchObject({
+      rolsuper: false,
+      rolbypassrls: false,
+      set_option: true,
+      inherit_option: false,
+    });
+    const snapshot = () =>
+      db.system(
+        async (q) =>
+          (
+            await q.query(
+              'SELECT (SELECT count(*) FROM documents) AS documents,(SELECT count(*) FROM audit_events) AS events,(SELECT count(*) FROM complaints) AS complaints,(SELECT count(*) FROM inspections) AS inspections',
+            )
+          ).rows[0],
+      );
+    const before = await snapshot();
+    await resumeDemoSetup(db);
+    expect(await snapshot()).toEqual(before);
+  });
   it('exige autenticação e origem segura e impede que outro perfil emita parecer', async () => {
     expect((await request('GET', 'cases', undefined, 'guest')).status).toBe(401);
     expect((await request('POST', 'cases', {}, 'requerente', 'https://outro.exemplo')).status).toBe(
@@ -99,7 +489,16 @@ describe('SISLAM — isolamento e fluxo verificável', () => {
       data.actors.admin,
       async (q) => (await q.query('SELECT name FROM organizations')).rows,
     );
-    expect(main.length).toBe(8);
+    const expectedCount = await db.system(
+      async (q) =>
+        (
+          await q.query(
+            'SELECT count(*)::int AS count FROM organizations WHERE municipality_id=$1',
+            [data.municipality.id],
+          )
+        ).rows[0].count,
+    );
+    expect(main.length).toBe(expectedCount);
     expect(main.some((r) => r.name.includes('homologação'))).toBe(false);
     const other = await db.tenant(
       { ...data.actors.admin, municipalityId: data.other.id },
@@ -596,7 +995,9 @@ describe('SISLAM — isolamento e fluxo verificável', () => {
       },
       'requerente',
     );
-    expect(filed.classification.manual).toBe(false);
+    expect(filed.workflow_step).toBe('2');
+    expect(filed.protocol).toBeNull();
+    expect(filed.rule_snapshot).toBeNull();
     await db.tenant(data.actors.admin, (q) =>
       audit(q, data.actors.admin, 'test.serialization', {
         omitted: undefined,
