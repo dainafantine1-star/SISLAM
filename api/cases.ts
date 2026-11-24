@@ -278,6 +278,7 @@ export class CasesService {
         establishment.activity,
         Number(establishment.capacity),
         new Date().toISOString().slice(0, 10),
+        establishment.capacity_unit || undefined,
       );
       const protocol = `SIS-${new Date().getUTCFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
       const saved = (
@@ -592,6 +593,7 @@ export class CasesService {
             establishment.activity,
             Number(establishment.capacity),
             new Date().toISOString().slice(0, 10),
+            establishment.capacity_unit || undefined,
           );
           await q.query(
             'UPDATE cases SET protocol=$1,filed_at=now(),rule_id=$2,rule_snapshot=$3,classification=$4 WHERE id=$5',

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { MunicipalWorkflow } from './MunicipalWorkflow';
+import { ClassificationForm } from './ManualForms';
 import {
   Plus,
   FolderOpen,
@@ -459,8 +460,8 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
                       </div>
                     </dl>
                     <div className="callout warning">
-                      {c.classification.competence || c.classification.reason} Regras de exemplo,
-                      pendentes de validação normativa.
+                      {c.classification.competence || c.classification.reason} Enquadramento sujeito
+                      à validação normativa.
                     </div>
                   </>
                 ) : (
@@ -865,7 +866,6 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
                       minLength={30}
                       maxLength={30000}
                       rows={7}
-                      defaultValue={`LICENÇA-MODELO — SEM VALIDADE JURÍDICA\nProcesso ${c.protocol}.\nAutorização fictícia destinada exclusivamente à validação do fluxo de demonstração do SISLAM.`}
                     />
                     <Check
                       name="confirmed"
@@ -1161,66 +1161,7 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
             </ActionForm>
           )}
           {modal === 'classification' && (
-            <ActionForm
-              label="Registrar revisão técnica"
-              submit={async (f) => {
-                let requirements;
-                try {
-                  requirements = JSON.parse(field(f, 'requirements'));
-                } catch {
-                  throw Error('Informe uma lista documental estruturada válida.');
-                }
-                await api('cases/' + c.id + '/classification', {
-                  label: field(f, 'label'),
-                  potential: field(f, 'potential'),
-                  modality: field(f, 'modality'),
-                  source: field(f, 'source'),
-                  reason: field(f, 'reason'),
-                  requirements,
-                });
-                changed();
-                setModal('');
-              }}
-            >
-              <Field
-                name="label"
-                label="Porte ambiental demonstrativo"
-                defaultValue={c.classification?.label || ''}
-                minLength={3}
-                required
-              />
-              <Select
-                name="potential"
-                label="Potencial poluidor"
-                defaultValue={c.classification?.potential || 'baixo'}
-              >
-                <option value="baixo">Baixo</option>
-                <option value="médio">Médio</option>
-                <option value="alto">Alto</option>
-              </Select>
-              <Field
-                name="modality"
-                label="Modalidade demonstrativa"
-                defaultValue={c.classification?.modality || ''}
-                minLength={3}
-                required
-              />
-              <Field name="source" label="Referência usada na revisão" minLength={12} required />
-              <Area
-                name="reason"
-                label="Justificativa técnica (a proposta anterior será preservada)"
-                minLength={30}
-                maxLength={4000}
-                required
-              />
-              <Area
-                name="requirements"
-                label="Checklist revisado (required = obrigatório; waived = dispensado)"
-                rows={8}
-                defaultValue={JSON.stringify(c.classification?.requirements || [], null, 2)}
-                required
-              />
-            </ActionForm>
+            <ClassificationForm process={c} onDone={() => setModal('')} />
           )}
           {modal === 'notice' && (
             <ActionForm
@@ -1240,7 +1181,6 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
               <Field
                 name="title"
                 label="Assunto"
-                defaultValue="Solicitação de complementação documental"
                 required
                 minLength={5}
               />
@@ -1250,7 +1190,6 @@ export function CaseDetail({ user, caseId }: { user: Entity; caseId: string }) {
                 rows={7}
                 required
                 minLength={20}
-                defaultValue={`MINUTA DEMONSTRATIVA — Processo ${c.protocol}.\n\nSolicita-se a complementação dos seguintes itens do checklist: ${missing.map((d: Entity) => d.name).join('; ') || 'conferir pendências com o técnico'}.\n\nTexto sujeito à revisão e aprovação da autoridade.`}
               />
               <Field
                 name="days"

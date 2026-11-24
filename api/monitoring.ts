@@ -723,7 +723,7 @@ export class PublicController {
       async (q) =>
         (
           await q.query(
-            "SELECT l.number,l.status,l.valid_until,l.published_at,m.name AS municipality FROM licenses l JOIN municipalities m ON m.id=l.municipality_id WHERE l.verification_code=$1 AND l.status='published_demo'",
+            "SELECT l.number,l.status,l.valid_until,l.published_at,m.name AS municipality FROM licenses l JOIN municipalities m ON m.id=l.municipality_id WHERE l.verification_code=$1 AND l.status='published_demo' AND NOT EXISTS (SELECT 1 FROM archived_samples s WHERE s.municipality_id=l.municipality_id AND s.entity_type='licenses' AND s.entity_id=l.id)",
             [code],
           )
         ).rows[0],

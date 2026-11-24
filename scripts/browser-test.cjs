@@ -307,6 +307,7 @@ async function main() {
   await page.getByRole('tab', { name: 'Licença e condicionantes', exact: true }).click();
   const future = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
   await page.getByLabel('Validade demonstrativa').fill(future);
+  await page.getByLabel('Texto da licença-modelo').fill('Texto da licença-modelo informado manualmente para a verificação isolada. Sem validade jurídica.');
   await page.getByRole('checkbox').check();
   const license = await postAction(`cases/${caseId}/license`, () =>
     page.getByRole('button', { name: 'Aprovar licença-modelo', exact: true }).click(),

@@ -108,6 +108,7 @@ export async function classifyWithQuery(
   activity: string,
   capacity: number,
   date: string,
+  capacityUnit?: string,
 ) {
   const rows = (
     await q.query(
@@ -115,7 +116,10 @@ export async function classifyWithQuery(
       [activity, date],
     )
   ).rows;
-  return { result: classify(rows, capacity), snapshot: rows.length === 1 ? rows[0] : null };
+  const snapshot = rows.length === 1 ? rows[0] : null;
+  if (snapshot && capacityUnit && capacityUnit.trim().toLocaleLowerCase('pt-BR') !== String(snapshot.definition.unit).trim().toLocaleLowerCase('pt-BR'))
+    return { result: { manual: true, reason: 'A unidade da capacidade informada difere da unidade da regra. A análise técnica deve conferir as medidas antes do enquadramento.', requirements: [] }, snapshot };
+  return { result: classify(rows, capacity), snapshot };
 }
 @Controller('registry')
 @UseGuards(AuthGuard)
@@ -182,12 +186,15 @@ export class RegistryController {
       .object({
         organizationId: z.uuid(),
         name: z.string().trim().min(3).max(200),
-        activity: z.string().min(3).max(80),
+        activity: z.string().trim().min(3).max(80),
         address: z.string().trim().min(8).max(500),
         latitude: z.number().min(-90).max(90).nullable(),
         longitude: z.number().min(-180).max(180).nullable(),
         capacity: z.number().min(0).max(1e12),
+        capacityUnit: z.string().trim().max(60).default(''),
         area: z.number().min(0).max(1e12),
+      }).refine(b => (b.latitude === null) === (b.longitude === null), {
+        message: 'Informe latitude e longitude juntas, ou deixe ambas em branco.',
       })
       .parse(input);
     return this.db.tenant(req.actor, async (q) => {
@@ -195,7 +202,7 @@ export class RegistryController {
         throw new NotFoundException('Organização não encontrada');
       const row = (
         await q.query(
-          'INSERT INTO establishments(municipality_id,organization_id,name,activity,address,latitude,longitude,capacity,area) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
+          'INSERT INTO establishments(municipality_id,organization_id,name,activity,address,latitude,longitude,capacity,area,capacity_unit) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',
           [
             req.actor.municipalityId,
             b.organizationId,
@@ -206,6 +213,7 @@ export class RegistryController {
             b.longitude,
             b.capacity,
             b.area,
+            b.capacityUnit,
           ],
         )
       ).rows[0];
@@ -236,7 +244,7 @@ export class RulesController {
       await q.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
         req.actor.municipalityId + ':rule:' + b.activity,
       ]);
-      const version = Number(
+      let version = Number(
         (
           await q.query(
             'SELECT coalesce(max(version),0)+1 AS next FROM rule_versions WHERE activity=$1',
@@ -244,9 +252,12 @@ export class RulesController {
           )
         ).rows[0].next,
       );
-      const row = (
-        await q.query(
-          'INSERT INTO rule_versions(municipality_id,activity,title,version,status,valid_from,valid_until,definition,source_reference,created_by,approved_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *',
+      let row;
+      // Archived versions still reserve their identifiers. Try the next version
+      // without revealing archived rows or bypassing the tenant policies.
+      while (!row) {
+        row = (await q.query(
+          'INSERT INTO rule_versions(municipality_id,activity,title,version,status,valid_from,valid_until,definition,source_reference,created_by,approved_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT(municipality_id,activity,version) DO NOTHING RETURNING *',
           [
             req.actor.municipalityId,
             b.activity,
@@ -260,8 +271,9 @@ export class RulesController {
             req.actor.id,
             b.status === 'approved_demo' ? req.actor.id : null,
           ],
-        )
-      ).rows[0];
+        )).rows[0];
+        if (!row) version++;
+      }
       await audit(q, req.actor, 'rule.version_created', {
         ruleId: row.id,
         version,

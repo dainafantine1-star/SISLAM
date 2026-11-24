@@ -8,17 +8,18 @@ import { CasesService } from './cases';
 import { DocumentsService } from './documents';
 import { digest } from './core';
 import { municipalWorkflow } from './municipal-workflow';
+import { prepareManualWorkspace } from './manual-workspace';
 export const profiles = [
-  ['admin', 'Marina Santos', 'municipal_admin'],
-  ['protocolo', 'Clara Nunes', 'protocol'],
-  ['tecnico', 'Rafael Oliveira', 'analyst'],
-  ['autoridade', 'Helena Almeida', 'authority'],
-  ['requerente', 'João Araújo', 'applicant'],
-  ['fiscal', 'Pedro Costa', 'inspector'],
-  ['ouvidoria', 'Camila Rocha', 'ombudsman'],
+  ['admin', 'Administração municipal', 'municipal_admin'],
+  ['protocolo', 'Departamento administrativo', 'protocol'],
+  ['tecnico', 'Departamento técnico', 'analyst'],
+  ['autoridade', 'Autoridade municipal', 'authority'],
+  ['requerente', 'Requerente', 'applicant'],
+  ['fiscal', 'Fiscalização', 'inspector'],
+  ['ouvidoria', 'Ouvidoria', 'ombudsman'],
   ['fornecedor', 'Suporte SISLAM', 'supplier'],
 ] as const;
-export async function seed(db: Database, password: string) {
+export async function seed(db: Database, password: string, options: { samples?: boolean } = {}) {
   const existing = await db.system(
     async (q) => (await q.query('SELECT id FROM municipalities LIMIT 1')).rows[0],
   );
@@ -29,11 +30,11 @@ export async function seed(db: Database, password: string) {
           "INSERT INTO municipalities(code,name,state) VALUES('ITABERABA-DEMO','Itaberaba','BA') RETURNING *",
         )
       ).rows[0],
-      other = (
+      other = options.samples ? (
         await q.query(
           "INSERT INTO municipalities(code,name,state) VALUES('HOMOLOGACAO','Município de Homologação','BA') RETURNING *",
         )
-      ).rows[0];
+      ).rows[0] : null;
     const actors: Record<string, Actor> = {};
     for (const [slug, name, role] of profiles) {
       const user = (
@@ -58,6 +59,7 @@ export async function seed(db: Database, password: string) {
         session: 'seed',
       };
     }
+    if (!options.samples || !other) return { municipality, other, actors, caseIds: [] as string[], otherOrg: null };
     await q.query(
       "INSERT INTO memberships(municipality_id,user_id,role) VALUES($1,$2,'municipal_admin')",
       [other.id, actors.admin.id],
@@ -201,7 +203,7 @@ export async function seed(db: Database, password: string) {
     ).rows[0];
     return { municipality, other, actors, caseIds, otherOrg };
   });
-  await completeDemoAssets(db, {
+  if (options.samples) await completeDemoAssets(db, {
     municipality: { id: String(data.municipality.id) },
     actors: data.actors,
     caseIds: data.caseIds,
@@ -352,7 +354,7 @@ async function main() {
     await db.migrate();
     const password = 'Sislam-' + randomBytes(9).toString('base64url') + '!';
     const result = await seed(db, password);
-    await ensureWorkflowDemo(db);
+    await prepareManualWorkspace(db);
     if (result.created) {
       fs.writeFileSync(
         'ACESSO-LOCAL.txt',

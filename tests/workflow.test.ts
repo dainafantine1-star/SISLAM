@@ -60,7 +60,7 @@ beforeAll(async () => {
   app = await createApplication();
   db = app.get(Database);
   await db.migrate();
-  data = await seed(db, password);
+  data = await seed(db, password, { samples: true });
   await app.listen(0, '127.0.0.1');
   base = 'http://127.0.0.1:' + app.getHttpServer().address().port;
   for (const slug of Object.keys(data.actors)) {

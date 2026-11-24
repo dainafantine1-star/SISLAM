@@ -29,6 +29,8 @@ const tables = [
   'outbox',
   'holidays',
   'schema_migrations',
+  'workspace_initializations',
+  'archived_samples',
 ] as const;
 type Snapshot = {
   format: 'sislam-backup-v1';

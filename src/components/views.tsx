@@ -2,6 +2,7 @@
 import { MAX_UPLOAD_MB } from '@/lib/uploads';
 import { useState } from 'react';
 import Link from 'next/link';
+import { RuleForm } from './ManualForms';
 import {
   Building2,
   Plus,
@@ -135,7 +136,7 @@ export function RegistryView({ user }: { user: Entity }) {
                     <span className="code-pill">{e.activity}</span>
                   </td>
                   <td className="muted">{e.address}</td>
-                  <td>{e.capacity}</td>
+                  <td>{e.capacity} {e.capacity_unit}</td>
                   <td>{e.area} m²</td>
                 </tr>
               ))}
@@ -175,6 +176,7 @@ export function RegistryView({ user }: { user: Entity }) {
                   latitude: field(f, 'latitude') ? Number(field(f, 'latitude')) : null,
                   longitude: field(f, 'longitude') ? Number(field(f, 'longitude')) : null,
                   capacity: Number(field(f, 'capacity')),
+                  capacityUnit: field(f, 'capacityUnit'),
                   area: Number(field(f, 'area')),
                 });
               changed();
@@ -198,7 +200,8 @@ export function RegistryView({ user }: { user: Entity }) {
                   maxLength={200}
                   required
                 />
-                <Select name="activity" label="Atividade demonstrativa" required>
+                <Field name="activity" label="Atividade / código de enquadramento" list="registered-activities" minLength={3} maxLength={80} required />
+                <datalist id="registered-activities">
                   {Array.from(new Set((rules.data || []).map((r) => r.activity))).map(
                     (activity) => (
                       <option key={activity} value={activity}>
@@ -206,7 +209,7 @@ export function RegistryView({ user }: { user: Entity }) {
                       </option>
                     ),
                   )}
-                </Select>
+                </datalist>
                 <Field
                   name="address"
                   label="Endereço e localização"
@@ -216,12 +219,13 @@ export function RegistryView({ user }: { user: Entity }) {
                 />
                 <Field
                   name="capacity"
-                  label="Capacidade instalada (unidade da regra)"
+                  label="Capacidade instalada"
                   type="number"
                   min={0}
                   step="any"
                   required
                 />
+                <Field name="capacityUnit" label="Unidade da capacidade instalada" maxLength={60} required />
                 <Field
                   name="area"
                   label="Área do empreendimento (m²)"
@@ -258,7 +262,7 @@ export function RegistryView({ user }: { user: Entity }) {
                 />
                 <Field
                   name="registration"
-                  label="CNPJ ou identificador fictício da demonstração"
+                  label="CNPJ ou identificador da organização"
                   required
                   minLength={5}
                   maxLength={30}
@@ -290,7 +294,7 @@ export function RegistryView({ user }: { user: Entity }) {
                   </Select>
                 )}
                 <p className="wide small muted">
-                  Neste ambiente, utilize apenas informações fictícias.
+                  Preencha os campos manualmente. O cadastro não emite atos oficiais e continua sem validade jurídica.
                 </p>
               </>
             )}
@@ -1205,53 +1209,7 @@ export function RulesView({ user }: { user: Entity }) {
       )}
       {modal && (
         <Modal title="Nova versão de regra demonstrativa" onClose={() => setModal(false)} wide>
-          <ActionForm
-            label="Salvar nova versão"
-            submit={async (f) => {
-              let definition;
-              try {
-                definition = JSON.parse(field(f, 'definition'));
-              } catch {
-                throw Error('A definição precisa ser um JSON válido.');
-              }
-              await api('rules', {
-                activity: field(f, 'activity'),
-                title: field(f, 'title'),
-                status: field(f, 'status'),
-                validFrom: field(f, 'from'),
-                validUntil: field(f, 'until') || null,
-                sourceReference: field(f, 'source'),
-                definition,
-              });
-              changed();
-              setModal(false);
-            }}
-          >
-            <Field
-              label="Código de atividade"
-              name="activity"
-              defaultValue="DEMO-MADEIRA"
-              required
-            />
-            <Field label="Título da revisão" name="title" required minLength={4} />
-            <Field label="Vigência inicial" name="from" type="date" required />
-            <Field label="Vigência final (opcional)" name="until" type="date" />
-            <Select label="Estado" name="status">
-              <option value="draft">Rascunho</option>
-              <option value="approved_demo">Aprovada para demonstração</option>
-            </Select>
-            <Field label="Referência / origem da revisão" name="source" required minLength={10} />
-            <Area
-              label="Faixas e documentos (definição estruturada, sem código executável)"
-              name="definition"
-              rows={15}
-              defaultValue={JSON.stringify(result.data?.[0]?.definition || {}, null, 2)}
-              required
-            />
-            <p className="small muted wide">
-              Criar uma versão não altera o enquadramento congelado de processos já protocolados.
-            </p>
-          </ActionForm>
+          <RuleForm onDone={() => setModal(false)} />
         </Modal>
       )}
     </>

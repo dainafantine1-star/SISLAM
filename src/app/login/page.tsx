@@ -106,7 +106,7 @@ export default function Login() {
                 ))}
               </Select>
               <p className="login-access-hint">
-                Conta: <strong>{email}</strong>. Use a senha disponível em ACESSO-LOCAL.txt.
+                Conta: <strong>{email}</strong>. Use a senha de acesso fornecida para este ambiente.
               </p>
               <ActionForm
                 label="Entrar no sistema"
@@ -145,7 +145,7 @@ export default function Login() {
                 </div>
               </ActionForm>
               <p className="login-help">
-                A senha dos perfis fictícios está no arquivo{' '}
+                A senha dos perfis de acesso está no arquivo{' '}
                 <strong>
                   {process.env.NEXT_PUBLIC_HOSTED_DEMO === '1'
                     ? 'ACESSO-ONLINE.txt'
@@ -203,7 +203,7 @@ export default function Login() {
           <div className="login-note">
             <ShieldCheck size={18} />
             <span>
-              Dados fictícios e atos sem validade jurídica. A validação das normas e integrações
+              Ambiente de teste e atos sem validade jurídica. A validação das normas e integrações
               oficiais é uma etapa posterior.
             </span>
           </div>

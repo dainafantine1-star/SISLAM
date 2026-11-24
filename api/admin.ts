@@ -301,7 +301,7 @@ export class DashboardController {
       ).rows,
       activity: (
         await q.query(
-          'SELECT id,action,created_at,case_id FROM audit_events ORDER BY sequence DESC LIMIT 5',
+          "SELECT id,action,created_at,case_id FROM audit_events a WHERE (a.case_id IS NULL OR EXISTS (SELECT 1 FROM cases c WHERE c.id=a.case_id)) AND a.action NOT LIKE 'demo.%' ORDER BY sequence DESC LIMIT 5",
         )
       ).rows,
       municipality: (await q.query('SELECT id,name,state FROM municipalities')).rows[0],

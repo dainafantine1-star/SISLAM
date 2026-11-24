@@ -53,6 +53,7 @@ const env = {
   SISLAM_BROWSER_URL: 'http://localhost:3400',
   SISLAM_BROWSER_ACCESS_FILE: path.join(directory, 'access.txt'),
   SISLAM_BROWSER_PASSWORD: 'Test-' + randomBytes(18).toString('base64url') + '!',
+  SISLAM_BROWSER_MANUAL: process.argv.includes('--manual') ? '1' : '0',
 };
 function start(args, options = {}) {
   const child = spawn(process.execPath, args, {
@@ -106,7 +107,7 @@ async function main() {
   await ready('http://127.0.0.1:3401/api/docs', api);
   const web = start(['node_modules/next/dist/bin/next', 'start', '-p', '3400', '-H', '127.0.0.1']);
   await ready('http://localhost:3400/login', web);
-  const test = start(['scripts/browser-test.cjs']);
+  const test = start([env.SISLAM_BROWSER_MANUAL === '1' ? 'scripts/browser-manual.cjs' : 'scripts/browser-test.cjs']);
   const code = await new Promise((resolve) => test.once('exit', resolve));
   if (code !== 0)
     throw new Error('Teste de navegador reprovado; consulte test-results/browser.json');

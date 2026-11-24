@@ -48,7 +48,7 @@ O PDF repete o rótulo 15a para a análise e o desvio de estudo inadequado. O si
 
 As etapas validam responsável, revisão e ação permitida na API. Movimentações genéricas não podem saltar etapas de processos que adotaram o roteiro. Documentos precisam de recebimento administrativo antes da revisão técnica; documentos obrigatórios pendentes impedem a adequação e o parecer favorável. A abertura administrativa verifica outro requerimento ativo do mesmo empreendimento. Minutas de notificação ficam internas até a expedição administrativa, inclusive por política RLS.
 
-Processos antigos não são reescritos nem recebem etapas cumpridas artificialmente. Neles, **Adotar roteiro numerado** exige justificativa e inicia o acompanhamento na etapa 1, preservando protocolo, regra congelada, anexos e pareceres. Novos requerimentos já nascem no roteiro. A preparação local acrescenta o exemplo **Demonstração do fluxograma municipal — 25 etapas**, sem substituir os exemplos anteriores.
+Processos antigos não são reescritos nem recebem etapas cumpridas artificialmente. Neles, **Adotar roteiro numerado** exige justificativa e inicia o acompanhamento na etapa 1, preservando protocolo, regra congelada, anexos e pareceres. Novos requerimentos já nascem no roteiro. A preparação atual começa com [cadastros manuais](PREENCHIMENTO-MANUAL.md); os exemplos são usados somente nos testes isolados.
 
 Taxas, pagamentos, vistorias, pareceres e licenças deste roteiro são registros demonstrativos. Não há boleto bancário, assinatura oficial, publicação oficial, comunicação externa real ou comprovação jurídica de pagamento/ciência. Valores, competência, documentos, modalidade e prazos reais continuam sujeitos aos dados versionados e à homologação do órgão.
 

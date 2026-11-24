@@ -1,5 +1,7 @@
 # Plano de continuidade do SISLAM
 
+Preparação para [preenchimento manual](PREENCHIMENTO-MANUAL.md): cadastros e regras sem conteúdo de exemplo, atividade livre, medidas com unidade e revisão técnica por formulário. Exemplos anteriores são arquivados sem apagar originais ou auditoria. O modo operacional continua bloqueado.
+
 Atualização local: [fluxograma municipal com três perfis e 25 etapas](FLUXOGRAMA-MUNICIPAL.md). Taxas, pagamentos e atos autorizativos continuam exclusivamente demonstrativos. O PDF orienta a sequência; não substitui as validações normativas pendentes.
 
 | Etapa do escopo | Situação nesta entrega | Próxima validação |

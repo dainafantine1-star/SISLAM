@@ -37,14 +37,15 @@ O roteiro municipal fornecido em novembro de 2026 agora tem [sequência numerada
 
 ## Roteiro de demonstração
 
-1. Entre com `requerente@demo.sislam.test`. Abra o processo **Madeireira Serra Verde (fictícia)**. Há dois anexos de três itens no checklist.
-2. Entre como `protocolo@demo.sislam.test` e registre o recebimento dos dois documentos.
-3. Entre como `tecnico@demo.sislam.test`, analise as peças e prepare a minuta de exigência para o item faltante. O prazo exige parâmetro e fundamento informados; o sistema não inventa prazo legal.
-4. Envie a planta de localização com o perfil requerente. Receba com o perfil protocolo e analise com o perfil técnico.
-5. Mova o processo para análise, registre parecer favorável revisado e encaminhe à decisão.
-6. Entre como `autoridade@demo.sislam.test`, abra **Licença e condicionantes**, aprove o modelo, publique a demonstração e baixe o PDF. A consulta por código continua identificada como sem validade jurídica.
-7. Cadastre uma condicionante, envie uma comprovação pelo perfil requerente e analise pelo técnico/fiscal.
-8. Consulte **Auditoria → Verificar integridade**. Para comparar municípios, a conta administrativa também tem acesso ao município fictício de homologação em **Minha conta**.
+1. Entre com `requerente@demo.sislam.test` e cadastre a organização e o empreendimento em **Empreendimentos**. Informe atividade, endereço, capacidade, unidade, área e, se disponíveis, as duas coordenadas.
+2. Crie o requerimento em **Processos** e envie ao administrativo.
+3. Entre como `protocolo@demo.sislam.test`, confira os dados e encaminhe ao técnico. O protocolo congela somente a regra cadastrada disponível, sem inventar exigências.
+4. Entre como `tecnico@demo.sislam.test` e siga as etapas numeradas. Sem regra prévia, informe porte, potencial, modalidade, referência, justificativa e documentos em **Revisar enquadramento**.
+5. Continue as 25 etapas com comunicações pelo administrativo, anexos pelo requerente e análise pelo técnico. Textos, referências e valores são preenchidos pelos responsáveis.
+6. A administração pode cadastrar regras, faixas e documentos em **Regras e legislação**, por campos de formulário, sem escrever JSON.
+7. Consulte **Auditoria → Verificar integridade**. Os exemplos instalados saem dos painéis; originais e eventos anteriores são preservados. As inicializações não recriam exemplos.
+
+Consulte [PREENCHIMENTO-MANUAL.md](docs/PREENCHIMENTO-MANUAL.md). Os atos continuam demonstrativos e sem validade jurídica.
 
 ## Comandos
 

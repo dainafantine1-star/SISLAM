@@ -23,12 +23,13 @@ async function main() {
   if (process.env.DATABASE_URL_UNPOOLED)
     process.env.DATABASE_URL = process.env.DATABASE_URL_UNPOOLED;
   const { Database } = await import('../api/core');
-  const { seed, resumeDemoSetup } = await import('../api/setup');
+  const { seed } = await import('../api/setup');
+  const { prepareManualWorkspace } = await import('../api/manual-workspace');
   const db = new Database();
   try {
     console.log('SISLAM online: aplicando migrações pendentes.');
     await db.migrate();
-    console.log('SISLAM online: verificando dados fictícios.');
+    console.log('SISLAM online: preparando o preenchimento manual.');
     const exists = await db.system(
       async (q) => (await q.query('SELECT id FROM municipalities LIMIT 1')).rows.length > 0,
     );
@@ -45,14 +46,15 @@ async function main() {
         await db.tenant(actor as import('../api/core').Actor, async (q) => {
           await q.query('SELECT count(*) FROM organizations');
         });
-      await resumeDemoSetup(db);
-      console.log('SISLAM online: base existente preservada; exemplos ausentes preparados.');
+      await prepareManualWorkspace(db);
+      console.log('SISLAM online: exemplos arquivados; cadastros manuais e credenciais preservados.');
       return;
     }
     const password = process.env.SISLAM_DEMO_PASSWORD;
     if (!password || password.length < 20)
       throw new Error('Configure uma senha aleatória para a preparação da demonstração');
     await seed(db, password);
+    await prepareManualWorkspace(db);
     console.log('SISLAM online preparado. Consulte ACESSO-ONLINE.txt; a senha não foi exibida.');
   } finally {
     await db.close();

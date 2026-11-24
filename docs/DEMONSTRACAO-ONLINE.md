@@ -1,5 +1,7 @@
 # Demonstração online
 
+A preparação atual usa [cadastros manuais](PREENCHIMENTO-MANUAL.md). Os exemplos anteriores são arquivados sem apagar originais ou auditoria; novas inicializações não criam empresas, processos ou regras de exemplo. O cenário registrado abaixo documenta a verificação histórica da implantação.
+
 Publicação validada em `https://sislam-of9c.vercel.app`: TypeScript, 33 testes, compilação e 11 verificações no Edge aprovados, incluindo isolamento municipal, leitura de anexo privado, parecer, licença-modelo, condicionante e auditoria. Evidências sem credenciais em [verificacao/online.json](verificacao/online.json).
 
 O SISLAM pode executar a demonstração na Vercel. A interface e a API NestJS compartilham o domínio: `src/pages/api/[...path].ts` inicializa o Nest sem abrir uma porta e mantém autenticação, verificação de origem, perfis, RLS e auditoria. O PostgreSQL e os anexos precisam de armazenamento persistente externo. A base local e suas credenciais são independentes e permanecem preservadas.

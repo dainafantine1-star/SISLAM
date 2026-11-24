@@ -1,0 +1,50 @@
+{
+  "verifiedAt": "2026-11-24T13:11:51.239Z",
+  "scope": "manual_entry_demo",
+  "typecheck": "passed",
+  "tests": {
+    "passed": 38,
+    "files": 4
+  },
+  "build": "passed",
+  "manualBrowser": {
+    "passed": true,
+    "checks": [
+      "empty_workspace_without_automatic_examples",
+      "three_profile_panels_logo_itaberaba_picker_and_25_step_workflow_with_study_return",
+      "manual_activity_capacity_unit_classification_documents_and_all_25_stages",
+      "rule_bands_documents_and_references_entered_through_fields_without_json"
+    ],
+    "pageErrors": [],
+    "serverErrors": [],
+    "backup": {
+      "verified": true,
+      "tables": 25,
+      "files": 4
+    }
+  },
+  "regressionBrowser": {
+    "passed": true,
+    "checks": 25,
+    "pageErrors": [],
+    "serverErrors": []
+  },
+  "regressionBackup": {
+    "verified": true,
+    "tables": 25,
+    "files": 12
+  },
+  "local": {
+    "visibleOrganizations": 0,
+    "visibleEstablishments": 0,
+    "visibleCases": 0,
+    "visibleRules": 0,
+    "visibleDocuments": 0,
+    "passwordsPreserved": true
+  },
+  "onlinePreparation": {
+    "archivedSampleRecords": 38,
+    "originalsPreserved": true
+  },
+  "officialValidity": false
+}

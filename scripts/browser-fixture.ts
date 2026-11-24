@@ -5,6 +5,7 @@ import { Database } from '../api/core';
 import { seed, ensureWorkflowDemo } from '../api/setup';
 import { capture, verifyBackup, encodeBackup, decodeBackup } from '../api/backup';
 import { FileStore } from '../api/documents';
+import { prepareManualWorkspace } from '../api/manual-workspace';
 
 async function main() {
   if (process.env.SISLAM_TEST !== '1' || !process.env.SISLAM_BROWSER_PASSWORD)
@@ -14,8 +15,10 @@ async function main() {
   const db = app.get(Database);
   await db.migrate();
   console.log('Migrações da fixture concluídas; preparando os exemplos...');
-  await seed(db, process.env.SISLAM_BROWSER_PASSWORD);
-  await ensureWorkflowDemo(db);
+  const manual = process.env.SISLAM_BROWSER_MANUAL === '1';
+  await seed(db, process.env.SISLAM_BROWSER_PASSWORD, { samples: !manual });
+  if (manual) await prepareManualWorkspace(db);
+  else await ensureWorkflowDemo(db);
   fs.writeFileSync(
     process.env.SISLAM_BROWSER_ACCESS_FILE!,
     `Senha dos perfis fictícios: ${process.env.SISLAM_BROWSER_PASSWORD}\n`,

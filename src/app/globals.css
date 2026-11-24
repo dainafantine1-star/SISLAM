@@ -2722,3 +2722,6 @@ th {
   display: grid;
   gap: 8px;
 }
+.manual-fields { display: grid; gap: 14px; min-width: 0; }
+.manual-row { padding: 16px; border: 1px solid var(--border, #dce5df); border-radius: 12px; }
+.manual-fields > .button { justify-self: start; }

@@ -11,6 +11,7 @@ module.exports = async function municipal({
   saveModal,
   pdf,
   report,
+  manual = false,
 }) {
   let currentRole = 'applicant';
   const slugs = { applicant: 'requerente', protocol: 'protocolo', analyst: 'tecnico' };
@@ -148,9 +149,22 @@ module.exports = async function municipal({
     reference: 'Referência fictícia de demonstração, sem competência homologada',
   });
   await stage('5');
+  if (manual) {
+    await button('Revisar enquadramento').click();
+    await dialog.getByLabel('Porte ambiental', { exact: true }).fill('Porte conferido manualmente');
+    await dialog.getByLabel('Potencial poluidor', { exact: true }).selectOption('baixo');
+    await dialog.getByLabel('Modalidade de licenciamento', { exact: true }).fill('Procedimento informado para o teste');
+    await dialog.getByLabel('Referência usada na revisão', { exact: true }).fill('Referência inserida pela pessoa para testar a revisão, sem validade normativa.');
+    await dialog.getByLabel('Justificativa técnica (a proposta anterior será preservada)', { exact: true }).fill('Conferência manual dos dados e definição do checklist para o teste isolado do sistema.');
+    await dialog.getByLabel('Chave do documento 1', { exact: true }).fill('documento');
+    await dialog.getByLabel('Nome do documento 1', { exact: true }).fill('Documento escolhido durante a análise');
+    await dialog.getByLabel('Exigência do documento 1', { exact: true }).selectOption('required');
+    await saveModal('cases/' + id + '/classification', 'Registrar revisão técnica');
+  }
   await button('Minuta de exigência').click();
   const noticeTitle = 'Complementação fictícia ' + suffix;
   await dialog.getByLabel('Assunto', { exact: true }).fill(noticeTitle);
+  await dialog.getByLabel('Texto da minuta', { exact: true }).fill('Minuta preenchida manualmente para conferir o envio pelo departamento administrativo no teste isolado.');
   await dialog.getByLabel('Prazo demonstrativo (dias)', { exact: true }).fill('5');
   await dialog.getByLabel('Forma de contagem', { exact: true }).selectOption('business');
   await dialog
@@ -202,6 +216,7 @@ module.exports = async function municipal({
   await as('protocol');
   await button('Registrar licença-modelo').click();
   await page.getByLabel('Validade demonstrativa', { exact: true }).fill('2029-01-01');
+  await page.getByLabel('Texto da licença-modelo', { exact: true }).fill('Texto de licença-modelo preenchido manualmente durante a conferência isolada, sem validade jurídica.');
   await page
     .getByLabel('Confirmo a decisão demonstrativa. Este modelo não é um ato oficial.', {
       exact: true,

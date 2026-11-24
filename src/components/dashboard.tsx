@@ -46,6 +46,15 @@ export function Dashboard({ user }: { user: Entity }) {
           )
         }
       />
+      {counts.processes === 0 && (
+        <section className="card padded role-guide">
+          <h2>Pronto para começar</h2>
+          <p>Os painéis mostram os registros cadastrados por você. Comece pela organização e pelo empreendimento; depois crie o requerimento.</p>
+          {hasRole(user, 'applicant', 'protocol', 'municipal_admin') && <Link href="/empreendimentos" className="button primary">Cadastrar organização e empreendimento</Link>}
+          {hasRole(user, 'municipal_admin') && <Link href="/regras" className="text-link">Cadastrar regras e referências manualmente</Link>}
+          {hasRole(user, 'analyst') && <p className="muted">Os processos aparecem aqui após o encaminhamento do administrativo. Atividades sem regra cadastrada exigem revisão técnica manual.</p>}
+        </section>
+      )}
       {['applicant', 'protocol', 'analyst'].includes(user.role) && (
         <section className="card padded role-guide">
           <h2>Painel · {ROLE_LABELS[user.role]}</h2>
